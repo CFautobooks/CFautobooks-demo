@@ -46,6 +46,6 @@ def read_invoices(
 
 @router.post("/upload")
 def upload_invoice():
-    # placeholder: actual OCR upload runs in a separate service
+    # Placeholder: actual OCR upload runs in a separate service
     return {"message": "Upload endpoint placeholder"}
 
