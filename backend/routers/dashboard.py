@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from utils.security import decode_access_token
 from fastapi.security import OAuth2PasswordBearer
-from typing import List
+Use built-in list[] in dashboard response model
 from sqlalchemy.orm import Session
 from database import get_db
 from models.user import User
@@ -21,7 +21,7 @@ def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="User not found")
     return user
 
-@router.get("/", response_model=List[InvoiceResponse])
+@router.get("/", response_model=list[InvoiceResponse]
 def read_invoices(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     invoices = db.query(Invoice).filter(Invoice.owner_id == current_user.id).all()
     return invoices
