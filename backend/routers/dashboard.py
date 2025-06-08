@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.orm import Session
-
+from typing import List
 from database import get_db
 from utils.security import decode_access_token
 from models.user import User               # keeps your User ORM for auth
@@ -31,6 +31,11 @@ def read_invoices(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ) -> list[InvoiceResponse]:
+    @router.get("/", response_model=List[InvoiceResponse])
+def read_invoices(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> List[InvoiceResponse]
     orm_invoices = (
         db.query(Invoice)
           .filter(Invoice.owner_id == current_user.id)
