@@ -1,36 +1,13 @@
-from pydantic import BaseModel, EmailStr
-from typing import Optional, List
+from pydantic import BaseModel
 from datetime import datetime
+from typing import Optional
 
-class UserBase(BaseModel):
-    email: EmailStr
-
-class UserCreate(UserBase):
-    password: str
-    plan: str  # "DIY", "WHITE_LABEL", "CARMICHAEL"
-
-class UserResponse(UserBase):
+class InvoiceAdmin(BaseModel):
     id: int
-    plan: str
-
-    class Config:
-        orm_mode = True
-
-class Token(BaseModel):
-    access_token: str
-    token_type: str
-
-class InvoiceBase(BaseModel):
-    filename: str
-
-class InvoiceCreate(InvoiceBase):
-    pass
-
-class InvoiceResponse(InvoiceBase):
-    id: int
-    status: str
-    total_amount: Optional[float]
+    owner_id: int
+    total_amount: Optional[float] = None
     created_at: datetime
 
     class Config:
+        # This tells Pydantic to read data from ORM objects
         orm_mode = True
