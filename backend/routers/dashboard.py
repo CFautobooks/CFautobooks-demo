@@ -42,6 +42,3 @@ def read_invoices(
 @router.post("/upload")
 def upload_invoice():
     return {"message": "Upload endpoint placeholder"}
-
-
-
