@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Sign Up – CF AutoBooks</title>
+  <link rel="stylesheet" href="assets/css/style.css" />
+</head>
+<body>
+  <main class="container">
+    <h1>Get Started with DIY AutoBooks</h1>
+    <form id="registerForm">
+      <label>Email: <input type="email" id="email" required/></label>
+      <label>Password: <input type="password" id="password" required/></label>
+      <button type="submit">Sign Up</button>
+    </form>
+    <p>Already have an account? <a href="login.html">Log In</a></p>
+  </main>
+  <script>
+    const API = "https://<your-api-domain>.onrender.com";
+    document.getElementById("registerForm").onsubmit = async e => {
+      e.preventDefault();
+      const email = document.getElementById("email").value;
+      const password = document.getElementById("password").value;
+      const plan = "DIY";
+      const res = await fetch(`${API}/auth/register`, {
+        method: "POST",
+        headers: { "Content-Type":"application/json" },
+        body: JSON.stringify({ email, password, plan })
+      });
+      if (res.ok) {
+        alert("Registered! Please log in.");
+        window.location.href = "login.html";
+      } else {
+        const err = await res.json();
+        alert("Error: " + err.detail);
+      }
+    };
+  </script>
+</body>
+</html>
