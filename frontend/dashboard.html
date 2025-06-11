@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>DIY Dashboard – CF AutoBooks</title>
+  <link rel="stylesheet" href="assets/css/style.css" />
+</head>
+<body>
+  <!-- Include your existing navbar here -->
+  <nav>
+    <a href="index.html">Home</a>
+    <a href="diy.html">DIY AutoBooks</a>
+    <a href="dashboard.html" class="active">Dashboard</a>
+    <!-- other links… -->
+  </nav>
+
+  <main class="container">
+    <h1>Your DIY Dashboard</h1>
+    <p>Welcome, <span id="userEmail">loading…</span></p>
+
+    <section id="invoicesSection" class="section">
+      <h2>Your Processed Invoices</h2>
+      <table id="invoicesTable">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Date Uploaded</th>
+            <th>Status</th>
+            <th>Total</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </section>
+  </main>
+
+  <script>
+    const API = "https://<your-api-domain>.onrender.com";
+    const token = localStorage.getItem("authToken");
+    if (!token) {
+      window.location.href = "login.html";
+    }
+
+    // Fetch user info and invoices
+    async function loadDashboard() {
+      // (1) Get user profile (if you have a /auth/me endpoint)
+      document.getElementById("userEmail").textContent = "you@domain.com";
+
+      // (2) Load invoices
+      const res = await fetch(`${API}/dashboard/`, {
+        headers: { "Authorization": `Bearer ${token}` }
+      });
+      const invoices = await res.json();
+      const tbody = document.querySelector("#invoicesTable tbody");
+      tbody.innerHTML = "";
+      invoices.forEach(inv => {
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+          <td>${inv.id}</td>
+          <td>${new Date(inv.created_at).toLocaleDateString()}</td>
+          <td>${inv.status}</td>
+          <td>${inv.total_amount?.toFixed(2) || "-"}</td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    loadDashboard();
+  </script>
+</body>
+</html>
