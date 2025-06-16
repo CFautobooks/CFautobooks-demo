@@ -29,3 +29,14 @@ app.include_router(admin.router)
 @app.get("/")
 def root():
     return {"message": "CF AutoBooks API is running"}
+    from fastapi import FastAPI
+from .database import Base, engine, get_db
+# ensure your models are imported so metadata includes them
+from .models.user import User
+from .routers import auth, invoices
+
+app = FastAPI()
+Base.metadata.create_all(bind=engine)
+
+app.include_router(auth.router)
+app.include_router(invoices.router)
