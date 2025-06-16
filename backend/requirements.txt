@@ -7,11 +7,10 @@ alembic
 python-multipart
 python-jose[cryptography]
 passlib[bcrypt]
+bcrypt
+python-dotenv
 stripe
 httpx
-python-dotenv
-passlib[bcrypt]
-python-jose
 email-validator
 reportlab
 sendgrid
