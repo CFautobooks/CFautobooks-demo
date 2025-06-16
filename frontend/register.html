@@ -2,39 +2,51 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Sign Up – CF AutoBooks</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>CF AutoBooks • Register</title>
   <link rel="stylesheet" href="assets/css/style.css" />
 </head>
 <body>
   <main class="container">
-    <h1>Get Started with DIY AutoBooks</h1>
+    <h1>Create an Account</h1>
     <form id="registerForm">
-      <label>Email: <input type="email" id="email" required/></label>
-      <label>Password: <input type="password" id="password" required/></label>
+      <label for="email">Email</label><br/>
+      <input type="email" id="email" required /><br/><br/>
+
+      <label for="password">Password</label><br/>
+      <input type="password" id="password" required minlength="6" /><br/><br/>
+
       <button type="submit">Sign Up</button>
     </form>
-    <p>Already have an account? <a href="login.html">Log In</a></p>
   </main>
+
   <script>
-    const API = "https://<your-api-domain>.onrender.com";
-    document.getElementById("registerForm").onsubmit = async e => {
-      e.preventDefault();
-      const email = document.getElementById("email").value;
+    document.getElementById("registerForm").addEventListener("submit", async e => {
+      e.preventDefault();  // stop the page reloading
+
+      const email = document.getElementById("email").value.trim();
       const password = document.getElementById("password").value;
-      const plan = "DIY";
-      const res = await fetch(`${API}/auth/register`, {
-        method: "POST",
-        headers: { "Content-Type":"application/json" },
-        body: JSON.stringify({ email, password, plan })
-      });
-      if (res.ok) {
-        alert("Registered! Please log in.");
-        window.location.href = "login.html";
-      } else {
-        const err = await res.json();
-        alert("Error: " + err.detail);
+
+      try {
+        const res = await fetch("/auth/register", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email, password })
+        });
+
+        if (res.ok) {
+          alert("Registered successfully! Please log in.");
+          window.location.href = "/login.html";
+        } else {
+          const err = await res.json();
+          alert(err.detail || "Registration failed");
+        }
+      } catch (err) {
+        console.error(err);
+        alert("Network error—please try again.");
       }
-    };
+    });
   </script>
 </body>
 </html>
+
