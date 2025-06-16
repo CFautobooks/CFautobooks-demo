@@ -33,13 +33,14 @@
   <script>
     const API = "https://cfautobooks-api.onrender.com";
 
-    // --- Authentication guard (must match login.html storage key) ---
-    const token = localStorage.getItem("access_token");   // ← exactly "access_token"
-    if (!token) {
-      window.location.href = "login.html";
-      throw new Error("No token");
-    }
-    // ------------------------------------------------------------
+    // DEV DEBUG: delay guard so you can inspect localStorage
+    setTimeout(() => {
+      const token = localStorage.getItem("access_token");
+      console.log("DEBUG token:", token);
+      if (!token) {
+        window.location.href = "login.html";
+      }
+    }, 5000);  // waits 5 seconds before redirecting
 
     // Logout
     document.getElementById("logoutBtn").onclick = () => {
@@ -47,8 +48,9 @@
       window.location.href = "login.html";
     };
 
-    // Load invoices
+    // Load invoices after token check
     async function loadInvoices() {
+      const token = localStorage.getItem("access_token");
       try {
         const res = await fetch(`${API}/admin/invoices`, {
           headers: { "Authorization": "Bearer " + token }
@@ -80,3 +82,4 @@
   </script>
 </body>
 </html>
+
