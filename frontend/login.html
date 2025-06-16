@@ -18,16 +18,21 @@
 
       <button type="submit">Log In</button>
     </form>
+
+    <p>
+      Don’t have an account?
+      <a href="register.html">Sign up here</a>
+    </p>
   </main>
 
   <script>
     document.getElementById("loginForm").addEventListener("submit", async e => {
-      e.preventDefault();  // stop the page reloading
+      e.preventDefault();  // prevent the default form submission
 
       const email = document.getElementById("email").value.trim();
       const password = document.getElementById("password").value;
 
-      // OAuth2PasswordRequestForm wants form-encoded
+      // OAuth2PasswordRequestForm expects URL-encoded form data
       const params = new URLSearchParams();
       params.append("username", email);
       params.append("password", password);
@@ -55,3 +60,4 @@
   </script>
 </body>
 </html>
+
