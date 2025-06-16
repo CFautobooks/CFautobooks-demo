@@ -1,0 +1,15 @@
+fastapi
+uvicorn
+sqlalchemy
+psycopg2-binary
+alembic
+python-multipart
+python-jose[cryptography]
+passlib[bcrypt]
+bcrypt
+python-dotenv
+stripe
+httpx
+email-validator
+reportlab
+sendgrid
