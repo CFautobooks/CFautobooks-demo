@@ -12,48 +12,41 @@
     <form id="registerForm">
       <label for="email">Email</label><br/>
       <input type="email" id="email" required /><br/><br/>
-
       <label for="password">Password</label><br/>
       <input type="password" id="password" required minlength="6" /><br/><br/>
-
       <button type="submit">Sign Up</button>
     </form>
-
     <p>
-      Already have an account?
+      Already have an account? 
       <a href="/login.html">Log in here</a>
     </p>
   </main>
 
   <script>
-    // 1) Point at your live API
+    // Your API root
     const API = "https://cfautobooks-api.onrender.com";
 
-    // 2) Handle sign-up
     document
       .getElementById("registerForm")
       .addEventListener("submit", async e => {
         e.preventDefault();
-
-        const email    = document.getElementById("email").value.trim();
+        const email = document.getElementById("email").value.trim();
         const password = document.getElementById("password").value;
-
         try {
           const res = await fetch(`${API}/auth/register`, {
             method:  "POST",
             headers: { "Content-Type": "application/json" },
             body:    JSON.stringify({ email, password })
           });
-
           if (res.ok) {
             alert("Registered successfully! Please log in.");
             window.location.href = "/login.html";
           } else {
             const err = await res.json();
-            alert(err.detail || "Registration failed");
+            alert(err.detail || `Registration failed (status ${res.status})`);
           }
         } catch (err) {
-          console.error("Fetch error:", err);
+          console.error(err);
           alert("Network error—please try again.");
         }
       });
