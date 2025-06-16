@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Admin Dashboard</title>
+  <style>
+    body { font-family: Arial, sans-serif; max-width: 800px; margin: 2rem auto; }
+    table { width: 100%; border-collapse: collapse; margin-top: 1rem; }
+    th, td { border: 1px solid #ddd; padding: 0.5rem; text-align: left; }
+    th { background: #f4f4f4; }
+    .btn { padding: 0.5rem 1rem; background: #007bff; color: white; border: none; cursor: pointer; }
+    .btn:hover { background: #0056b3; }
+  </style>
+</head>
+<body>
+  <h1>Admin — All Invoices</h1>
+
+  <button id="logoutBtn" class="btn">Log Out</button>
+
+  <table>
+    <thead>
+      <tr>
+        <th>ID</th>
+        <th>Owner ID</th>
+        <th>Total</th>
+        <th>Created At</th>
+      </tr>
+    </thead>
+    <tbody id="invoiceRows">
+      <tr><td colspan="4">Loading…</td></tr>
+    </tbody>
+  </table>
+
+  <script>
+    // on load, fetch all invoices
+    async function loadInvoices() {
+      const token = localStorage.getItem('access_token');
+      if (!token) {
+        alert('Not logged in as admin');
+        window.location.href = 'login.html';
+        return;
+      }
+
+      const res = await fetch('https://cfautobooks-api.onrender.com/admin/invoices', {
+        headers: { 'Authorization': 'Bearer ' + token }
+      });
+
+      if (res.status === 401 || res.status === 403) {
+        alert('Unauthorized – please log in as admin');
+        window.location.href = 'login.html';
+        return;
+      }
+
+      const invoices = await res.json();
+      const tbody = document.getElementById('invoiceRows');
+      tbody.innerHTML = '';
+
+      invoices.forEach(inv => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>${inv.id}</td>
+          <td>${inv.owner_id}</td>
+          <td>${inv.total_amount ?? '—'}</td>
+          <td>${new Date(inv.created_at).toLocaleString()}</td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    // logout handler
+    document.getElementById('logoutBtn').addEventListener('click', () => {
+      localStorage.removeItem('access_token');
+      window.location.href = 'login.html';
+    });
+
+    loadInvoices();
+  </script>
+</body>
+</html>
