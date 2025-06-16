@@ -1,48 +1,57 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>Login / Sign Up - CF AutoBooks</title>
-  <link rel="stylesheet" href="assets/css/style.css">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>CF AutoBooks • Login</title>
+  <link rel="stylesheet" href="assets/css/style.css" />
 </head>
 <body>
+  <main class="container">
+    <h1>Log In</h1>
+    <form id="loginForm">
+      <label for="email">Email</label><br/>
+      <input type="email" id="email" required /><br/><br/>
 
-<header>
-  <div class="logo">CF AutoBooks</div>
-  <ul class="nav-links">
-    <li><a href="index.html">Home</a></li>
-    <li class="dropdown">
-      <a href="#">Products</a>
-      <div class="dropdown-content">
-        <a href="carmichael.html">Carmichael Financials</a>
-        <a href="whitelabel.html">White-Label Software</a>
-        <a href="diy.html">DIY AutoBooks</a>
-      </div>
-    </li>
-    <li><a href="about.html">About Us</a></li>
-    <li><a href="contact.html">Contact</a></li>
-    <li><a href="login.html">Login</a></li>
-  </ul>
-</header>
+      <label for="password">Password</label><br/>
+      <input type="password" id="password" required /><br/><br/>
 
-<main class="section">
-  <h1>Login / Sign Up</h1>
-  <p>Access your account or create a new one to start using CF AutoBooks.</p>
-  <form>
-    <label>Email:</label><br>
-    <input type="email" name="email" placeholder="you@example.com"><br><br>
-    <label>Password:</label><br>
-    <input type="password" name="password" placeholder="Password"><br><br>
-    <button type="submit">Login</button>
-    <button type="button">Sign Up</button>
-  </form>
-</main>
+      <button type="submit">Log In</button>
+    </form>
+  </main>
 
-<footer class="footer">
-  <p>&copy; 2025 CF AutoBooks. All rights reserved.</p>
-</footer>
-<script src="assets/js/script.js"></script>
+  <script>
+    document.getElementById("loginForm").addEventListener("submit", async e => {
+      e.preventDefault();  // stop the page reloading
 
+      const email = document.getElementById("email").value.trim();
+      const password = document.getElementById("password").value;
+
+      // OAuth2PasswordRequestForm wants form-encoded
+      const params = new URLSearchParams();
+      params.append("username", email);
+      params.append("password", password);
+
+      try {
+        const res = await fetch("/auth/login", {
+          method: "POST",
+          headers: { "Content-Type": "application/x-www-form-urlencoded" },
+          body: params.toString()
+        });
+
+        if (res.ok) {
+          const data = await res.json();
+          localStorage.setItem("token", data.access_token);
+          window.location.href = "/dashboard.html";
+        } else {
+          const err = await res.json();
+          alert(err.detail || "Login failed");
+        }
+      } catch (err) {
+        console.error(err);
+        alert("Network error—please try again.");
+      }
+    });
+  </script>
 </body>
 </html>
