@@ -1,4 +1,5 @@
 version: "3.8"
+
 services:
   db:
     image: postgres:13
@@ -12,23 +13,21 @@ services:
       - "5432:5432"
 
   ocr-service:
-    image: tiangolo/uvicorn-gunicorn-fastapi:python3.10
+    build:
+      context: ./Step1_OCR_Service
+      dockerfile: Dockerfile
     container_name: ocr-service
-    volumes:
-      - ./backend/../Step1_OCR_Service:/ocr-service
-    working_dir: /ocr-service
-    command: ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
+    working_dir: /app
     ports:
       - "8001:8000"
 
   api:
     build:
       context: ./backend
+      dockerfile: Dockerfile
     container_name: cfautobooks-api
-    volumes:
-      - ./backend:/app
     env_file:
-      - ./backend/config/.env
+      - ./backend/.env
     depends_on:
       - db
       - ocr-service
