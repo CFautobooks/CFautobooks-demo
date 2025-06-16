@@ -10,3 +10,8 @@ passlib[bcrypt]
 stripe
 httpx
 python-dotenv
+passlib[bcrypt]
+python-jose
+email-validator
+reportlab
+sendgrid
