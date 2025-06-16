@@ -21,24 +21,28 @@
 
     <p>
       Don’t have an account?
-      <a href="register.html">Sign up here</a>
+      <a href="/register.html">Sign up here</a>
     </p>
   </main>
 
   <script>
+    // 1) Point to your Render-hosted API
+    const API = "https://cfautobooks-api.onrender.com";
+
+    // 2) Handle the form submit
     document.getElementById("loginForm").addEventListener("submit", async e => {
-      e.preventDefault();  // prevent the default form submission
+      e.preventDefault();
 
       const email = document.getElementById("email").value.trim();
       const password = document.getElementById("password").value;
 
-      // OAuth2PasswordRequestForm expects URL-encoded form data
       const params = new URLSearchParams();
       params.append("username", email);
       params.append("password", password);
 
       try {
-        const res = await fetch("/auth/login", {
+        // 3) Use the API constant here
+        const res = await fetch(`${API}/auth/login`, {
           method: "POST",
           headers: { "Content-Type": "application/x-www-form-urlencoded" },
           body: params.toString()
