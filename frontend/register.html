@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
   <title>CF AutoBooks • Register</title>
   <link rel="stylesheet" href="assets/css/style.css" />
 </head>
@@ -26,16 +26,18 @@
   </main>
 
   <script>
-    // ▶ Point at your live API
+    // 1) Point at your Render-hosted API
     const API = "https://cfautobooks-api.onrender.com";
 
+    // 2) Handle the sign-up form
     document.getElementById("registerForm").addEventListener("submit", async e => {
-      e.preventDefault(); 
+      e.preventDefault();
 
       const email    = document.getElementById("email").value.trim();
       const password = document.getElementById("password").value;
 
       try {
+        // 3) Make the POST to /auth/register on your API
         const res = await fetch(`${API}/auth/register`, {
           method:  "POST",
           headers: { "Content-Type": "application/json" },
@@ -46,15 +48,17 @@
           alert("Registered successfully! Please log in.");
           window.location.href = "/login.html";
         } else {
+          // Extract and show the API’s JSON error.detail
           const err = await res.json();
           alert(err.detail || "Registration failed");
         }
       } catch (err) {
-        console.error(err);
+        console.error("Fetch error:", err);
         alert("Network error—please try again.");
       }
     });
   </script>
 </body>
 </html>
+
 
