@@ -1,5 +1,3 @@
-# backend/main.py
-
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -12,10 +10,10 @@ UserBase.metadata.create_all(bind=engine)
 
 app = FastAPI(title="CF AutoBooks API")
 
-# 🔐 CORS: allow only your front-end origin
+# === Enable CORS for your front-end ===
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["https://cfautobooks-demo.onrender.com"],
+    allow_origins=["*"],        # you can narrow this to ["https://cfautobooks-demo.onrender.com"] later
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
