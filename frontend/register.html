@@ -18,11 +18,16 @@
 
       <button type="submit">Sign Up</button>
     </form>
+
+    <p>
+      Already have an account?
+      <a href="/login.html">Log in here</a>
+    </p>
   </main>
 
   <script>
     document.getElementById("registerForm").addEventListener("submit", async e => {
-      e.preventDefault();  // stop the page reloading
+      e.preventDefault();
 
       const email = document.getElementById("email").value.trim();
       const password = document.getElementById("password").value;
