@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
   <title>CF AutoBooks • Login</title>
   <link rel="stylesheet" href="assets/css/style.css" />
 </head>
@@ -26,41 +26,44 @@
   </main>
 
   <script>
-    // ▶ Same API base
+    // 1) API root
     const API = "https://cfautobooks-api.onrender.com";
 
-    document.getElementById("loginForm").addEventListener("submit", async e => {
-      e.preventDefault();
+    // 2) Handle login
+    document
+      .getElementById("loginForm")
+      .addEventListener("submit", async e => {
+        e.preventDefault();
 
-      const email    = document.getElementById("email").value.trim();
-      const password = document.getElementById("password").value;
-      const params   = new URLSearchParams({
-        username: email,
-        password: password
-      });
+        const email    = document.getElementById("email").value.trim();
+        const password = document.getElementById("password").value;
 
-      try {
-        const res = await fetch(`${API}/auth/login`, {
-          method:  "POST",
-          headers: { "Content-Type": "application/x-www-form-urlencoded" },
-          body:    params.toString()
-        });
+        // OAuth2PasswordRequestForm wants URL-encoded body
+        const params = new URLSearchParams();
+        params.append("username", email);
+        params.append("password", password);
 
-        if (res.ok) {
-          const data = await res.json();
-          localStorage.setItem("token", data.access_token);
-          window.location.href = "/dashboard.html";
-        } else {
-          const err = await res.json();
-          alert(err.detail || "Login failed");
+        try {
+          const res = await fetch(`${API}/auth/login`, {
+            method:  "POST",
+            headers: { "Content-Type": "application/x-www-form-urlencoded" },
+            body:    params.toString()
+          });
+
+          if (res.ok) {
+            const data = await res.json();
+            localStorage.setItem("token", data.access_token);
+            window.location.href = "/dashboard.html";
+          } else {
+            const err = await res.json();
+            alert(err.detail || "Login failed");
+          }
+        } catch (err) {
+          console.error("Fetch error:", err);
+          alert("Network error—please try again.");
         }
-      } catch (err) {
-        console.error(err);
-        alert("Network error—please try again.");
-      }
-    });
+      });
   </script>
 </body>
 </html>
-
 
