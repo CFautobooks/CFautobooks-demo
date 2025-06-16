@@ -1,35 +1,63 @@
-<script>
-  const API = "https://cfautobooks-api.onrender.com";
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+  <title>CF AutoBooks • Register</title>
+  <link rel="stylesheet" href="assets/css/style.css" />
+</head>
+<body>
+  <main class="container">
+    <h1>Create an Account</h1>
+    <form id="registerForm">
+      <label for="email">Email</label><br/>
+      <input type="email" id="email" required /><br/><br/>
 
-  document.getElementById("registerForm")
-    .addEventListener("submit", async e => {
-      e.preventDefault();
+      <label for="password">Password</label><br/>
+      <input type="password" id="password" required minlength="6" /><br/><br/>
 
-      const email    = document.getElementById("email").value.trim();
-      const password = document.getElementById("password").value;
+      <button type="submit">Sign Up</button>
+    </form>
 
-      // 🔥 Debug: show exactly what URL we’re calling
-      const url = `${API}/auth/register`;
-      alert("About to call:\n" + url);
+    <p>
+      Already have an account?
+      <a href="/login.html">Log in here</a>
+    </p>
+  </main>
 
-      try {
-        const res = await fetch(url, {
-          method:  "POST",
-          headers: { "Content-Type": "application/json" },
-          body:    JSON.stringify({ email, password })
-        });
+  <script>
+    // 1) Point at your live API
+    const API = "https://cfautobooks-api.onrender.com";
 
-        if (res.ok) {
-          alert("Registered successfully! Please log in.");
-          window.location.href = "/login.html";
-        } else {
-          const err = await res.json();
-          alert("API error: " + (err.detail || res.status));
+    // 2) Handle sign-up
+    document
+      .getElementById("registerForm")
+      .addEventListener("submit", async e => {
+        e.preventDefault();
+
+        const email    = document.getElementById("email").value.trim();
+        const password = document.getElementById("password").value;
+
+        try {
+          const res = await fetch(`${API}/auth/register`, {
+            method:  "POST",
+            headers: { "Content-Type": "application/json" },
+            body:    JSON.stringify({ email, password })
+          });
+
+          if (res.ok) {
+            alert("Registered successfully! Please log in.");
+            window.location.href = "/login.html";
+          } else {
+            const err = await res.json();
+            alert(err.detail || "Registration failed");
+          }
+        } catch (err) {
+          console.error("Fetch error:", err);
+          alert("Network error—please try again.");
         }
-      } catch (err) {
-        alert("Network error: " + err.message);
-      }
-    });
-</script>
-
+      });
+  </script>
+</body>
+</html>
 
