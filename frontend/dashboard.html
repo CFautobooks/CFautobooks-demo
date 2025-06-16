@@ -14,17 +14,16 @@
 
   <main class="container">
     <h1>Welcome to Your Dashboard</h1>
-    <p>Your AI-powered bookkeeping features will appear here soon.</p>
+    <p>Your AI-powered bookkeeping tools will appear here.</p>
   </main>
 
   <script>
-    // 1) Redirect to login if no token
+    // Redirect to login if not authenticated
     const token = localStorage.getItem("token");
     if (!token) {
       window.location.href = "/login.html";
     }
 
-    // 2) Handle logout
     document.getElementById("logout").onclick = () => {
       localStorage.removeItem("token");
       window.location.href = "/login.html";
