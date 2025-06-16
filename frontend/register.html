@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -13,10 +12,13 @@
     <form id="registerForm">
       <label for="email">Email</label><br/>
       <input type="email" id="email" required /><br/><br/>
+
       <label for="password">Password</label><br/>
       <input type="password" id="password" required minlength="6" /><br/><br/>
+
       <button type="submit">Sign Up</button>
     </form>
+
     <p>
       Already have an account?
       <a href="/login.html">Log in here</a>
@@ -24,14 +26,22 @@
   </main>
 
   <script>
-    // ——— your Render‐assigned API URL ———
+    // 🛎️ Heartbeat: script loaded
+    console.log("🛎️ register.html script loaded");
+
+    const form = document.getElementById("registerForm");
+    console.log("🛎️ Got form element:", form);
+
+    // Your Render-assigned API URL
     const API = "https://cfautobooks-api.onrender.com";
 
-    document.getElementById("registerForm").addEventListener("submit", async e => {
+    form.addEventListener("submit", async e => {
+      console.log("🔥 submit event fired");
       e.preventDefault();
 
       const email    = document.getElementById("email").value.trim();
       const password = document.getElementById("password").value;
+      console.log("🛎️ Email/password collected:", email, password ? "••••••" : "");
 
       try {
         const res = await fetch(`${API}/auth/register`, {
@@ -39,6 +49,7 @@
           headers: { "Content-Type": "application/json" },
           body:    JSON.stringify({ email, password })
         });
+        console.log("🛎️ Fetch completed, status:", res.status);
 
         if (res.ok) {
           alert("Registered successfully! Please log in.");
@@ -48,7 +59,7 @@
           alert(err.detail || `Registration failed (status ${res.status})`);
         }
       } catch (err) {
-        console.error(err);
+        console.error("❌ Network/fetch error:", err);
         alert("Network error—please try again.");
       }
     });
