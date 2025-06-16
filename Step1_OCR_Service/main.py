@@ -26,7 +26,7 @@ CATEGORY_RULES = {
 async def ocr_and_classify(file: UploadFile = File(...)):
     # Validate content type
     if file.content_type not in ("image/png", "image/jpeg"):
-        raise HTTPException(400, "Only PNG/JPEG images supported")
+        raise HTTPException(status_code=400, detail="Only PNG/JPEG images supported")
 
     # Save upload to temp file
     contents = await file.read()
@@ -40,7 +40,7 @@ async def ocr_and_classify(file: UploadFile = File(...)):
         img = Image.open(tmp_path)
     except Exception:
         os.unlink(tmp_path)
-        raise HTTPException(400, "Cannot open image")
+        raise HTTPException(status_code=400, detail="Cannot open image")
 
     # OCR to text
     text = pytesseract.image_to_string(img)
@@ -56,7 +56,7 @@ async def ocr_and_classify(file: UploadFile = File(...)):
         if not m:
             continue
         amt = float(m.group(1))
-        desc = re.sub(r"[^A-Za-z ]", "", line).lower()
+        desc = re.sub(r"[^A-Za-z ]", "", line).strip().lower()
         cat = "Uncategorized"
         for kw, c in CATEGORY_RULES.items():
             if kw in desc:
@@ -70,4 +70,4 @@ async def ocr_and_classify(file: UploadFile = File(...)):
             "requires_review": (cat == "Uncategorized")
         })
 
-    return JSONResponse({"line_items": items})
+    return JSONResponse(content={"line_items": items})
