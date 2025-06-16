@@ -7,25 +7,23 @@ from database import engine
 from models.user import Base as UserBase
 from routers.auth import router as auth_router
 
-# Create all database tables
+# Create all tables
 UserBase.metadata.create_all(bind=engine)
 
-# Instantiate FastAPI
 app = FastAPI(title="CF AutoBooks API")
 
-# Enable CORS for your front-end
+# 🔐 CORS: allow only your front-end origin
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],    # lock this down in production
+    allow_origins=["https://cfautobooks-demo.onrender.com"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# Include the auth router (router itself defines prefix="/auth")
+# Mount the auth router (its prefix="/auth" lives in routers/auth.py)
 app.include_router(auth_router)
 
 @app.get("/")
 def root():
     return {"message": "CF AutoBooks API is running"}
-
