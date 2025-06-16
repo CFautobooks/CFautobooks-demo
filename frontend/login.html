@@ -26,26 +26,24 @@
   </main>
 
   <script>
-    // 1) Point to your Render-hosted API
+    // ▶ Same API base
     const API = "https://cfautobooks-api.onrender.com";
 
-    // 2) Handle the form submit
     document.getElementById("loginForm").addEventListener("submit", async e => {
       e.preventDefault();
 
-      const email = document.getElementById("email").value.trim();
+      const email    = document.getElementById("email").value.trim();
       const password = document.getElementById("password").value;
-
-      const params = new URLSearchParams();
-      params.append("username", email);
-      params.append("password", password);
+      const params   = new URLSearchParams({
+        username: email,
+        password: password
+      });
 
       try {
-        // 3) Use the API constant here
         const res = await fetch(`${API}/auth/login`, {
-          method: "POST",
+          method:  "POST",
           headers: { "Content-Type": "application/x-www-form-urlencoded" },
-          body: params.toString()
+          body:    params.toString()
         });
 
         if (res.ok) {
@@ -64,4 +62,5 @@
   </script>
 </body>
 </html>
+
 
