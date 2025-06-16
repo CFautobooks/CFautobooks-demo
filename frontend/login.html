@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>CF AutoBooks • Login</title>
   <link rel="stylesheet" href="assets/css/style.css" />
 </head>
@@ -23,7 +23,6 @@
   </main>
 
   <script>
-    // ——— your Render‐assigned API URL ———
     const API = "https://cfautobooks-api.onrender.com";
 
     document.getElementById("loginForm").addEventListener("submit", async e => {
@@ -32,28 +31,27 @@
       const email    = document.getElementById("email").value.trim();
       const password = document.getElementById("password").value;
 
-      // OAuth2 form needs URL-encoded body
-      const params = new URLSearchParams();
-      params.append("username", email);
-      params.append("password", password);
+      const form = new URLSearchParams();
+      form.append("username", email);
+      form.append("password", password);
 
       try {
         const res = await fetch(`${API}/auth/login`, {
           method:  "POST",
+          mode:    "cors",
           headers: { "Content-Type": "application/x-www-form-urlencoded" },
-          body:    params.toString()
+          body:    form.toString()
         });
-
         if (res.ok) {
           const { access_token } = await res.json();
-          localStorage.setItem("token", access_token);
+          localStorage.setItem("access_token", access_token);
           window.location.href = "/dashboard.html";
         } else {
           const err = await res.json();
           alert(err.detail || `Login failed (status ${res.status})`);
         }
       } catch (err) {
-        console.error(err);
+        console.error("Network error:", err);
         alert("Network error—please try again.");
       }
     });
