@@ -10,14 +10,17 @@
   <main class="container">
     <h1>Log In</h1>
     <form id="loginForm">
-      <label for="email">Email</label><br/>
+      <label>Email</label><br/>
       <input type="email" id="email" required /><br/><br/>
-      <label for="password">Password</label><br/>
+
+      <label>Password</label><br/>
       <input type="password" id="password" required /><br/><br/>
+
       <button type="submit">Log In</button>
     </form>
+
     <p>
-      Don’t have an account? 
+      Don’t have an account?
       <a href="/register.html">Sign up here</a>
     </p>
   </main>
@@ -25,36 +28,35 @@
   <script>
     const API = "https://cfautobooks-api.onrender.com";
 
-    document
-      .getElementById("loginForm")
-      .addEventListener("submit", async e => {
-        e.preventDefault();
-        const email = document.getElementById("email").value.trim();
-        const password = document.getElementById("password").value;
-        // OAuth2 form requires urlencoded body
-        const params = new URLSearchParams();
-        params.append("username", email);
-        params.append("password", password);
-        try {
-          const res = await fetch(`${API}/auth/login`, {
-            method:  "POST",
-            headers: { "Content-Type": "application/x-www-form-urlencoded" },
-            body:    params.toString()
-          });
-          if (res.ok) {
-            const data = await res.json();
-            localStorage.setItem("token", data.access_token);
-            window.location.href = "/dashboard.html";
-          } else {
-            const err = await res.json();
-            alert(err.detail || `Login failed (status ${res.status})`);
-          }
-        } catch (err) {
-          console.error(err);
-          alert("Network error—please try again.");
+    document.getElementById("loginForm").addEventListener("submit", async e => {
+      e.preventDefault();
+      const email = document.getElementById("email").value.trim();
+      const password = document.getElementById("password").value;
+      const params = new URLSearchParams();
+      params.append("username", email);
+      params.append("password", password);
+
+      try {
+        const res = await fetch(`${API}/auth/login`, {
+          method:  "POST",
+          headers: { "Content-Type": "application/x-www-form-urlencoded" },
+          body:    params.toString()
+        });
+        if (res.ok) {
+          const { access_token } = await res.json();
+          localStorage.setItem("token", access_token);
+          window.location.href = "/dashboard.html";
+        } else {
+          const err = await res.json();
+          alert(err.detail || `Login failed (${res.status})`);
         }
-      });
+      } catch (err) {
+        console.error(err);
+        alert("Network error—please try again.");
+      }
+    });
   </script>
 </body>
 </html>
+
 
