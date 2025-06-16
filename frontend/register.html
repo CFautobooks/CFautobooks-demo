@@ -26,6 +26,10 @@
   </main>
 
   <script>
+    // 1) Point to your Render-hosted API
+    const API = "https://cfautobooks-api.onrender.com";
+
+    // 2) Handle the form submit
     document.getElementById("registerForm").addEventListener("submit", async e => {
       e.preventDefault();
 
@@ -33,7 +37,8 @@
       const password = document.getElementById("password").value;
 
       try {
-        const res = await fetch("/auth/register", {
+        // 3) Use the API constant here
+        const res = await fetch(`${API}/auth/register`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ email, password })
@@ -54,4 +59,3 @@
   </script>
 </body>
 </html>
-
