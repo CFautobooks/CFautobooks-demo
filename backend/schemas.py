@@ -44,3 +44,30 @@ class InvoiceAdmin(BaseModel):
 
     class Config:
         orm_mode = True
+# --- User/auth schemas ---
+class UserCreate(BaseModel):
+    email: EmailStr
+    password: str
+
+class UserOut(BaseModel):
+    id: int
+    email: EmailStr
+
+    class Config:
+        orm_mode = True
+
+class Token(BaseModel):
+    access_token: str
+    token_type: str = "bearer"
+
+
+# --- Invoice schemas ---
+class InvoiceItem(BaseModel):
+    description: str
+    quantity: int
+    unit_price: float
+
+class InvoiceCreate(BaseModel):
+    client_email: EmailStr
+    items: List[InvoiceItem]
+
