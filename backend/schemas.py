@@ -70,4 +70,16 @@ class InvoiceItem(BaseModel):
 class InvoiceCreate(BaseModel):
     client_email: EmailStr
     items: List[InvoiceItem]
+    from pydantic import BaseModel, EmailStr
+from typing import List
+
+class InvoiceItem(BaseModel):
+    description: str
+    quantity: int
+    unit_price: float
+
+class InvoiceCreate(BaseModel):
+    client_email: EmailStr
+    items: List[InvoiceItem]
+
 
