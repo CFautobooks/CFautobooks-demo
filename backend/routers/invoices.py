@@ -4,54 +4,35 @@ from sqlalchemy.orm import Session
 from io import BytesIO
 from reportlab.pdfgen import canvas
 import base64
-import sendgrid
+from sendgrid import SendGridAPIClient
 from sendgrid.helpers.mail import Mail, Attachment, FileContent, FileName, FileType, Disposition
 from jose import JWTError, jwt
 
-# ─── Absolute imports ────────────────────────────────────────────────────────────
-from database        import get_db
-from models.user     import User
-from schemas         import InvoiceCreate
-from utils.security  import settings
-# ────────────────────────────────────────────────────────────────────────────────
+from backend.database import get_db
+from backend.models.user import User
+from backend.schemas import InvoiceCreate
+from backend.utils.security import settings
 
 router = APIRouter(prefix="/invoices", tags=["invoices"])
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login")
 
 
 def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)) -> User:
-    """
-    Decode the JWT, fetch the user from DB, or raise 401.
-    """
     try:
         payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
         email: str = payload.get("sub")
         if not email:
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Invalid token payload"
-            )
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token payload")
     except JWTError:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Could not validate credentials"
-        )
-
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Could not validate credentials")
     user = db.query(User).filter(User.email == email).first()
     if not user:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="User not found"
-        )
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="User not found")
     return user
 
 
 @router.post("/send", status_code=status.HTTP_201_CREATED)
 def send_invoice(inv: InvoiceCreate, user: User = Depends(get_current_user)):
-    """
-    Generate a PDF invoice in-memory and send it via SendGrid.
-    """
-    # 1) Render PDF to bytes
     buffer = BytesIO()
     pdf = canvas.Canvas(buffer)
     y = 800
@@ -65,8 +46,7 @@ def send_invoice(inv: InvoiceCreate, user: User = Depends(get_current_user)):
     pdf_bytes = buffer.getvalue()
     buffer.close()
 
-    # 2) Send by email
-    sg = sendgrid.SendGridAPIClient(api_key=settings.SENDGRID_API_KEY)
+    sg = SendGridAPIClient(api_key=settings.SENDGRID_API_KEY)
     message = Mail(
         from_email=settings.FROM_EMAIL,
         to_emails=inv.client_email,
@@ -81,14 +61,11 @@ def send_invoice(inv: InvoiceCreate, user: User = Depends(get_current_user)):
         FileType("application/pdf"),
         Disposition("attachment")
     )
-    message.attachment = attachment
+    message.add_attachment(attachment)
 
     response = sg.send(message)
     if response.status_code >= 400:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to send invoice email"
-        )
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Failed to send invoice email")
 
     return {"status": "sent"}
 
