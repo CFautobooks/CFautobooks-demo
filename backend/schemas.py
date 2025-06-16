@@ -10,7 +10,7 @@ class UserBase(BaseModel):
 
 class UserCreate(UserBase):
     password: str
-    plan: str    # "DIY", "WHITE_LABEL", or "CARMICHAEL"
+    plan: str  # "DIY", "WHITE_LABEL", or "CARMICHAEL"
 
 class UserResponse(UserBase):
     id: int
@@ -22,7 +22,7 @@ class UserResponse(UserBase):
 # Token returned on login
 class Token(BaseModel):
     access_token: str
-    token_type: str
+    token_type: str = "bearer"
 
 # ─── Invoice Schemas ────────────────────────────────────────────────────────────
 class InvoiceResponse(BaseModel):
@@ -35,7 +35,6 @@ class InvoiceResponse(BaseModel):
     class Config:
         orm_mode = True
 
-# For the admin list view
 class InvoiceAdmin(BaseModel):
     id: int
     owner_id: int
@@ -44,34 +43,6 @@ class InvoiceAdmin(BaseModel):
 
     class Config:
         orm_mode = True
-# --- User/auth schemas ---
-class UserCreate(BaseModel):
-    email: EmailStr
-    password: str
-
-class UserOut(BaseModel):
-    id: int
-    email: EmailStr
-
-    class Config:
-        orm_mode = True
-
-class Token(BaseModel):
-    access_token: str
-    token_type: str = "bearer"
-
-
-# --- Invoice schemas ---
-class InvoiceItem(BaseModel):
-    description: str
-    quantity: int
-    unit_price: float
-
-class InvoiceCreate(BaseModel):
-    client_email: EmailStr
-    items: List[InvoiceItem]
-    from pydantic import BaseModel, EmailStr
-from typing import List
 
 class InvoiceItem(BaseModel):
     description: str
