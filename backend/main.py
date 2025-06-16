@@ -10,19 +10,20 @@ from routers.auth import router as auth_router
 # Create all database tables
 UserBase.metadata.create_all(bind=engine)
 
+# Instantiate FastAPI
 app = FastAPI(title="CF AutoBooks API")
 
-# Enable CORS for your static site
+# Enable CORS for your front-end
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],    # you can lock this down later
+    allow_origins=["*"],    # lock this down in production
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# Mount the auth router at /auth
-app.include_router(auth_router, prefix="/auth", tags=["auth"])
+# Include the auth router (router itself defines prefix="/auth")
+app.include_router(auth_router)
 
 @app.get("/")
 def root():
