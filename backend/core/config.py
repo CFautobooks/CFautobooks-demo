@@ -1,5 +1,6 @@
 import os
 from pydantic import BaseSettings
+from typing import Optional
 
 class Settings(BaseSettings):
     DATABASE_URL: str
@@ -9,8 +10,8 @@ class Settings(BaseSettings):
     STRIPE_API_KEY: str
     STRIPE_WEBHOOK_SECRET: str
     OCR_SERVICE_URL: str
-    SENDGRID_API_KEY: optional str
-    FROM_EMAIL: cfautobooks@gmail.com str
+    SENDGRID_API_KEY: Optional (str) = None
+    FROM_EMAIL: Optional (str) = None 
 
     class Config:
         env_file = ".env"
