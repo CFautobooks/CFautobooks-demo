@@ -1,33 +1,27 @@
-# backend/main.py
-
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from database import engine
-# Bring in both models so SQLAlchemy sees them
 from models.user    import Base as UserBase
 from models.invoice import Base as InvoiceBase
+from routers.auth   import router as auth_router
 
-# Also import your auth router
-from routers.auth import router as auth_router
-
-# Create all tables for both models
+# Create all tables (must import both models before this)
 UserBase.metadata.create_all(bind=engine)
 InvoiceBase.metadata.create_all(bind=engine)
 
 app = FastAPI(title="CF AutoBooks API")
 
-# Temporarily open CORS so your JS can hit it
+# Open CORS for everything (you can lock it later)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],   # once it’s working you can lock this to your front‐end URL
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# Mount your authentication routes
-app.include_router(auth_router)
+app.include_router(auth_router)  # mounts /auth/register and /auth/login
 
 @app.get("/")
 def root():
