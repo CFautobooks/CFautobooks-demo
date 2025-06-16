@@ -1,8 +1,9 @@
+<!-- frontend/register.html -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>CF AutoBooks • Register</title>
   <link rel="stylesheet" href="assets/css/style.css" />
 </head>
@@ -16,6 +17,9 @@
       <label for="password">Password</label><br/>
       <input type="password" id="password" required minlength="6" /><br/><br/>
 
+      <!-- Hidden plan field -->
+      <input type="hidden" id="planField" name="plan" />
+
       <button type="submit">Sign Up</button>
     </form>
 
@@ -26,40 +30,39 @@
   </main>
 
   <script>
-    // 🛎️ Heartbeat: script loaded
-    console.log("🛎️ register.html script loaded");
-
-    const form = document.getElementById("registerForm");
-    console.log("🛎️ Got form element:", form);
-
-    // Your Render-assigned API URL
     const API = "https://cfautobooks-api.onrender.com";
 
-    form.addEventListener("submit", async e => {
-      console.log("🔥 submit event fired");
+    // Populate plan from querystring, default to DIY
+    const params = new URLSearchParams(window.location.search);
+    const planValue = params.get("plan") || "DIY";
+    document.getElementById("planField").value = planValue;
+
+    document.getElementById("registerForm").addEventListener("submit", async e => {
       e.preventDefault();
 
       const email    = document.getElementById("email").value.trim();
       const password = document.getElementById("password").value;
-      console.log("🛎️ Email/password collected:", email, password ? "••••••" : "");
+      const plan     = document.getElementById("planField").value;
+
+      const payload = { email, password, plan };
 
       try {
         const res = await fetch(`${API}/auth/register`, {
           method:  "POST",
+          mode:    "cors",
           headers: { "Content-Type": "application/json" },
-          body:    JSON.stringify({ email, password })
+          body:    JSON.stringify(payload)
         });
-        console.log("🛎️ Fetch completed, status:", res.status);
 
         if (res.ok) {
           alert("Registered successfully! Please log in.");
-          window.location.href = "/login.html";
+          window.location.href = `/login.html`;
         } else {
           const err = await res.json();
           alert(err.detail || `Registration failed (status ${res.status})`);
         }
       } catch (err) {
-        console.error("❌ Network/fetch error:", err);
+        console.error("Network error:", err);
         alert("Network error—please try again.");
       }
     });
