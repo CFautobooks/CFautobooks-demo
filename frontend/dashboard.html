@@ -2,74 +2,33 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>CF AutoBooks Dashboard</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+  <title>CF AutoBooks • Dashboard</title>
   <link rel="stylesheet" href="assets/css/style.css" />
 </head>
 <body>
-  <!-- Your navbar -->
-  <nav>
-    <a href="index.html">Home</a>
-    <a href="dashboard.html" class="active">Dashboard</a>
-    <button id="logout">Log Out</button>
-  </nav>
+  <header>
+    <div class="logo">CF AutoBooks</div>
+    <button id="logout" class="cta-btn">Log Out</button>
+  </header>
 
   <main class="container">
-    <h1>Your Dashboard</h1>
-    <p>Welcome, <span id="userEmail">loading…</span></p>
-
-    <section id="invoicesSection" class="section">
-      <h2>Your Processed Invoices</h2>
-      <table id="invoicesTable">
-        <thead>
-          <tr>
-            <th>ID</th>
-            <th>Date Uploaded</th>
-            <th>Status</th>
-            <th>Total</th>
-          </tr>
-        </thead>
-        <tbody></tbody>
-      </table>
-    </section>
+    <h1>Welcome to Your Dashboard</h1>
+    <p>Your AI-powered bookkeeping features will appear here soon.</p>
   </main>
 
   <script>
-    // 1) Auth check
+    // 1) Redirect to login if no token
     const token = localStorage.getItem("token");
-    if (!token) window.location.href = "login.html";
-
-    // 2) Logout handler
-    document.getElementById("logout").onclick = () => {
-      localStorage.removeItem("token");
-      window.location.href = "login.html";
-    };
-
-    // 3) Load dashboard data
-    async function loadDashboard() {
-      // a) (Optional) fetch user profile if you build /auth/me
-      document.getElementById("userEmail").textContent = "you@domain.com";
-
-      // b) fetch your invoices list
-      const res = await fetch(`/invoices`, {
-        headers: { "Authorization": `Bearer ${token}` }
-      });
-      const invoices = await res.json();
-      const tbody = document.querySelector("#invoicesTable tbody");
-      tbody.innerHTML = "";
-      invoices.forEach(inv => {
-        const tr = document.createElement("tr");
-        tr.innerHTML = `
-          <td>${inv.id}</td>
-          <td>${new Date(inv.created_at).toLocaleDateString()}</td>
-          <td>${inv.status}</td>
-          <td>${inv.total_amount?.toFixed(2) || "-"}</td>
-        `;
-        tbody.appendChild(tr);
-      });
+    if (!token) {
+      window.location.href = "/login.html";
     }
 
-    loadDashboard();
+    // 2) Handle logout
+    document.getElementById("logout").onclick = () => {
+      localStorage.removeItem("token");
+      window.location.href = "/login.html";
+    };
   </script>
 </body>
 </html>
