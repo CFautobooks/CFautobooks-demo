@@ -1,16 +1,34 @@
 # render.yaml
 services:
   - type: web
+    name: cfautobooks-frontend
+    env: static
+    branch: main
+    repo: https://github.com/CFautobooks/CFautobooks-demo.git
+    staticPublishPath: frontend
+
+  - type: web
     name: cfautobooks-api
     env: docker
     branch: main
     repo: https://github.com/CFautobooks/CFautobooks-demo.git
-
-    # tell Render to chdir into `backend/` before building
+    # Change into backend/ before building:
     rootDir: backend
-
-    # DockerfilePath is now relative to backend/
+    # Now look for backend/Dockerfile → backend/Dockerfile
     dockerfilePath: Dockerfile
-
     plan: free
 
+  - type: web
+    name: cfautobooks-ocr
+    env: docker
+    branch: main
+    repo: https://github.com/CFautobooks/CFautobooks-demo.git
+    # Change into the OCR service folder:
+    rootDir: Step1_OCR_Service
+    dockerfilePath: Dockerfile
+    plan: free
+
+databases:
+  - name: cfautobooks-db
+    plan: free
+    databaseName: cfautobooks
