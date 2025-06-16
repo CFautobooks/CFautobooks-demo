@@ -26,39 +26,38 @@
   </main>
 
   <script>
-    // 1) Point at your Render-hosted API
+    // Point to your live API root
     const API = "https://cfautobooks-api.onrender.com";
 
-    // 2) Handle the sign-up form
-    document.getElementById("registerForm").addEventListener("submit", async e => {
-      e.preventDefault();
+    document
+      .getElementById("registerForm")
+      .addEventListener("submit", async e => {
+        e.preventDefault();
 
-      const email    = document.getElementById("email").value.trim();
-      const password = document.getElementById("password").value;
+        const email    = document.getElementById("email").value.trim();
+        const password = document.getElementById("password").value;
 
-      try {
-        // 3) Make the POST to /auth/register on your API
-        const res = await fetch(`${API}/auth/register`, {
-          method:  "POST",
-          headers: { "Content-Type": "application/json" },
-          body:    JSON.stringify({ email, password })
-        });
+        try {
+          // <-- Make sure this is the full path to your API endpoint:
+          const res = await fetch(`${API}/auth/register`, {
+            method:  "POST",
+            headers: { "Content-Type": "application/json" },
+            body:    JSON.stringify({ email, password })
+          });
 
-        if (res.ok) {
-          alert("Registered successfully! Please log in.");
-          window.location.href = "/login.html";
-        } else {
-          // Extract and show the API’s JSON error.detail
-          const err = await res.json();
-          alert(err.detail || "Registration failed");
+          if (res.ok) {
+            alert("Registered successfully! Please log in.");
+            window.location.href = "/login.html";
+          } else {
+            const err = await res.json();
+            alert(err.detail || "Registration failed");
+          }
+        } catch (err) {
+          console.error("Fetch error:", err);
+          alert("Network error—please try again.");
         }
-      } catch (err) {
-        console.error("Fetch error:", err);
-        alert("Network error—please try again.");
-      }
-    });
+      });
   </script>
 </body>
 </html>
-
 
