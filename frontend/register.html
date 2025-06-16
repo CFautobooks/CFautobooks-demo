@@ -10,15 +10,12 @@
   <main class="container">
     <h1>Create an Account</h1>
     <form id="registerForm">
-      <label>Email</label><br/>
+      <label for="email">Email</label><br/>
       <input type="email" id="email" required /><br/><br/>
-
-      <label>Password</label><br/>
+      <label for="password">Password</label><br/>
       <input type="password" id="password" required minlength="6" /><br/><br/>
-
       <button type="submit">Sign Up</button>
     </form>
-
     <p>
       Already have an account?
       <a href="/login.html">Log in here</a>
@@ -26,24 +23,28 @@
   </main>
 
   <script>
+    // ——— your Render‐assigned API URL ———
     const API = "https://cfautobooks-api.onrender.com";
 
     document.getElementById("registerForm").addEventListener("submit", async e => {
       e.preventDefault();
-      const email = document.getElementById("email").value.trim();
+
+      const email    = document.getElementById("email").value.trim();
       const password = document.getElementById("password").value;
+
       try {
         const res = await fetch(`${API}/auth/register`, {
           method:  "POST",
           headers: { "Content-Type": "application/json" },
           body:    JSON.stringify({ email, password })
         });
+
         if (res.ok) {
           alert("Registered successfully! Please log in.");
           window.location.href = "/login.html";
         } else {
           const err = await res.json();
-          alert(err.detail || `Registration failed (${res.status})`);
+          alert(err.detail || `Registration failed (status ${res.status})`);
         }
       } catch (err) {
         console.error(err);
@@ -53,4 +54,5 @@
   </script>
 </body>
 </html>
+
 
