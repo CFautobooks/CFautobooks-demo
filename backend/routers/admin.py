@@ -1,14 +1,14 @@
 from typing import List
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.orm import Session
 
-from database import get_db
-from utils.security import decode_access_token
-from fastapi.security import OAuth2PasswordBearer
-from models.user import User
-from models.invoice import Invoice
-from schemas import InvoiceAdmin
+from backend.database import get_db
+from backend.utils.security import decode_access_token
+from backend.models.user import User
+from backend.models.invoice import Invoice
+from backend.schemas import InvoiceAdmin
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login")
 
@@ -33,7 +33,4 @@ def list_all_invoices(
     db: Session = Depends(get_db),
     admin: User = Depends(get_admin_user),
 ) -> List[InvoiceAdmin]:
-    # Fetch all Invoice ORM objects
-    orm_list = db.query(Invoice).all()
-    # Pydantic will automatically convert thanks to orm_mode=True
-    return orm_list
+    return db.query(Invoice).all()
