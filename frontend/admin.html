@@ -15,9 +15,7 @@
 </head>
 <body>
   <h1>Admin — All Invoices</h1>
-
   <button id="logoutBtn" class="btn">Log Out</button>
-
   <table>
     <thead>
       <tr>
@@ -33,46 +31,50 @@
   </table>
 
   <script>
-    // on load, fetch all invoices
-    async function loadInvoices() {
-      const token = localStorage.getItem('access_token');
-      if (!token) {
-        alert('Not logged in as admin');
-        window.location.href = 'login.html';
-        return;
-      }
+    const API = "https://cfautobooks-api.onrender.com";
 
-      const res = await fetch('https://cfautobooks-api.onrender.com/admin/invoices', {
-        headers: { 'Authorization': 'Bearer ' + token }
-      });
-
-      if (res.status === 401 || res.status === 403) {
-        alert('Unauthorized – please log in as admin');
-        window.location.href = 'login.html';
-        return;
-      }
-
-      const invoices = await res.json();
-      const tbody = document.getElementById('invoiceRows');
-      tbody.innerHTML = '';
-
-      invoices.forEach(inv => {
-        const tr = document.createElement('tr');
-        tr.innerHTML = `
-          <td>${inv.id}</td>
-          <td>${inv.owner_id}</td>
-          <td>${inv.total_amount ?? '—'}</td>
-          <td>${new Date(inv.created_at).toLocaleString()}</td>
-        `;
-        tbody.appendChild(tr);
-      });
+    // --- Authentication guard (must match login.html storage key) ---
+    const token = localStorage.getItem("access_token");   // ← exactly "access_token"
+    if (!token) {
+      window.location.href = "login.html";
+      throw new Error("No token");
     }
+    // ------------------------------------------------------------
 
-    // logout handler
-    document.getElementById('logoutBtn').addEventListener('click', () => {
-      localStorage.removeItem('access_token');
-      window.location.href = 'login.html';
-    });
+    // Logout
+    document.getElementById("logoutBtn").onclick = () => {
+      localStorage.removeItem("access_token");
+      window.location.href = "login.html";
+    };
+
+    // Load invoices
+    async function loadInvoices() {
+      try {
+        const res = await fetch(`${API}/admin/invoices`, {
+          headers: { "Authorization": "Bearer " + token }
+        });
+        if (res.status === 401 || res.status === 403) {
+          alert("Unauthorized – must be a CARMICHAEL plan user");
+          return window.location.href = "login.html";
+        }
+        const invoices = await res.json();
+        const tbody = document.getElementById("invoiceRows");
+        tbody.innerHTML = "";
+        invoices.forEach(inv => {
+          const row = document.createElement("tr");
+          row.innerHTML = `
+            <td>${inv.id}</td>
+            <td>${inv.owner_id}</td>
+            <td>${inv.total_amount ?? "—"}</td>
+            <td>${new Date(inv.created_at).toLocaleString()}</td>
+          `;
+          tbody.appendChild(row);
+        });
+      } catch (err) {
+        console.error(err);
+        alert("Failed to load invoices");
+      }
+    }
 
     loadInvoices();
   </script>
