@@ -10,15 +10,12 @@
   <main class="container">
     <h1>Log In</h1>
     <form id="loginForm">
-      <label>Email</label><br/>
+      <label for="email">Email</label><br/>
       <input type="email" id="email" required /><br/><br/>
-
-      <label>Password</label><br/>
+      <label for="password">Password</label><br/>
       <input type="password" id="password" required /><br/><br/>
-
       <button type="submit">Log In</button>
     </form>
-
     <p>
       Don’t have an account?
       <a href="/register.html">Sign up here</a>
@@ -26,12 +23,16 @@
   </main>
 
   <script>
+    // ——— your Render‐assigned API URL ———
     const API = "https://cfautobooks-api.onrender.com";
 
     document.getElementById("loginForm").addEventListener("submit", async e => {
       e.preventDefault();
-      const email = document.getElementById("email").value.trim();
+
+      const email    = document.getElementById("email").value.trim();
       const password = document.getElementById("password").value;
+
+      // OAuth2 form needs URL-encoded body
       const params = new URLSearchParams();
       params.append("username", email);
       params.append("password", password);
@@ -42,13 +43,14 @@
           headers: { "Content-Type": "application/x-www-form-urlencoded" },
           body:    params.toString()
         });
+
         if (res.ok) {
           const { access_token } = await res.json();
           localStorage.setItem("token", access_token);
           window.location.href = "/dashboard.html";
         } else {
           const err = await res.json();
-          alert(err.detail || `Login failed (${res.status})`);
+          alert(err.detail || `Login failed (status ${res.status})`);
         }
       } catch (err) {
         console.error(err);
@@ -58,5 +60,4 @@
   </script>
 </body>
 </html>
-
 
