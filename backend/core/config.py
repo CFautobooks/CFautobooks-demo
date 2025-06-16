@@ -10,9 +10,8 @@ class Settings(BaseSettings):
     STRIPE_API_KEY: str
     STRIPE_WEBHOOK_SECRET: str
     OCR_SERVICE_URL: str
-    SENDGRID_API_KEY: Optional (str) = None
-    FROM_EMAIL: Optional (str) = None 
-
+    SENDGRID_API_KEY:         Optional[str] = None
+    FROM_EMAIL:               Optional[str] = None
     class Config:
         env_file = ".env"
 
