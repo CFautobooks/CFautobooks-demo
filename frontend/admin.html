@@ -1,85 +1,96 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Admin Dashboard</title>
+  <meta charset="UTF-8">
+  <title>CF AutoBooks · Admin Dashboard</title>
+
+  <!-- ★ Access-control guard ★ -->
+  <script>
+  document.addEventListener("DOMContentLoaded", () => {
+    // 1) Grab the stored email
+    const email = (localStorage.getItem("cfab_user_email") || "").toLowerCase();
+
+    // 2) If it’s the super-admin account, allow outright
+    if (email === "cfautobooks@gmail.com") {
+      return;
+    }
+
+    // 3) Otherwise we require a valid JWT
+    const token = localStorage.getItem("access_token");
+    if (!token) {
+      window.location.href = "login.html";
+      return;
+    }
+
+    // 4) Decode payload and check the plan
+    let payload;
+    try {
+      payload = JSON.parse(atob(token.split(".")[1]));
+    } catch {
+      window.location.href = "login.html";
+      return;
+    }
+
+    if (payload.plan !== "CARMICHAEL") {
+      alert("Unauthorized – must be a CARMICHAEL plan user");
+      window.location.href = "login.html";
+    }
+  });
+  </script>
+
   <style>
-    body { font-family: Arial, sans-serif; max-width: 800px; margin: 2rem auto; }
+    body { font-family: sans-serif; padding: 1rem; }
     table { width: 100%; border-collapse: collapse; margin-top: 1rem; }
     th, td { border: 1px solid #ddd; padding: 0.5rem; text-align: left; }
     th { background: #f4f4f4; }
-    .btn { padding: 0.5rem 1rem; background: #007bff; color: white; border: none; cursor: pointer; }
-    .btn:hover { background: #0056b3; }
   </style>
 </head>
 <body>
-  <h1>Admin — All Invoices</h1>
-  <button id="logoutBtn" class="btn">Log Out</button>
-  <table>
+  <h1>Admin: All Invoices</h1>
+
+  <button id="fetchInvoices">Load Invoices</button>
+  <table id="invoicesTable" style="display:none">
     <thead>
-      <tr>
-        <th>ID</th>
-        <th>Owner ID</th>
-        <th>Total</th>
-        <th>Created At</th>
-      </tr>
+      <tr><th>ID</th><th>Owner</th><th>Total</th><th>Created At</th></tr>
     </thead>
-    <tbody id="invoiceRows">
-      <tr><td colspan="4">Loading…</td></tr>
-    </tbody>
+    <tbody></tbody>
   </table>
 
   <script>
-    const API = "https://cfautobooks-api.onrender.com";
+  document.getElementById("fetchInvoices").addEventListener("click", async () => {
+    const token = localStorage.getItem("access_token");
+    const type  = localStorage.getItem("token_type") || "bearer";
 
-    // DEV DEBUG: delay guard so you can inspect localStorage
-    setTimeout(() => {
-      const token = localStorage.getItem("access_token");
-      console.log("DEBUG token:", token);
-      if (!token) {
-        window.location.href = "login.html";
-      }
-    }, 5000);  // waits 5 seconds before redirecting
-
-    // Logout
-    document.getElementById("logoutBtn").onclick = () => {
-      localStorage.removeItem("access_token");
-      window.location.href = "login.html";
-    };
-
-    // Load invoices after token check
-    async function loadInvoices() {
-      const token = localStorage.getItem("access_token");
-      try {
-        const res = await fetch(`${API}/admin/invoices`, {
-          headers: { "Authorization": "Bearer " + token }
-        });
-        if (res.status === 401 || res.status === 403) {
-          alert("Unauthorized – must be a CARMICHAEL plan user");
-          return window.location.href = "login.html";
+    const res = await fetch(
+      "https://cfautobooks-api.onrender.com/admin/invoices",
+      {
+        headers: {
+          "Authorization": `${type} ${token}`
         }
-        const invoices = await res.json();
-        const tbody = document.getElementById("invoiceRows");
-        tbody.innerHTML = "";
-        invoices.forEach(inv => {
-          const row = document.createElement("tr");
-          row.innerHTML = `
-            <td>${inv.id}</td>
-            <td>${inv.owner_id}</td>
-            <td>${inv.total_amount ?? "—"}</td>
-            <td>${new Date(inv.created_at).toLocaleString()}</td>
-          `;
-          tbody.appendChild(row);
-        });
-      } catch (err) {
-        console.error(err);
-        alert("Failed to load invoices");
       }
+    );
+
+    if (!res.ok) {
+      return alert("Failed to load invoices: " + res.status);
     }
 
-    loadInvoices();
+    const invoices = await res.json();
+    const tbody    = document.querySelector("#invoicesTable tbody");
+    tbody.innerHTML = "";
+
+    invoices.forEach(inv => {
+      const tr = document.createElement("tr");
+      tr.innerHTML = `
+        <td>${inv.id}</td>
+        <td>${inv.owner_id}</td>
+        <td>${inv.total_amount ?? "-"}</td>
+        <td>${new Date(inv.created_at).toLocaleString()}</td>
+      `;
+      tbody.appendChild(tr);
+    });
+
+    document.getElementById("invoicesTable").style.display = "";
+  });
   </script>
 </body>
 </html>
-
