@@ -13,7 +13,10 @@ app = FastAPI(title="CF AutoBooks API")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # tighten this in prod
+    allow_origins=[
+      "https://cfautobooks-demo.onrender.com",      # your frontend URL
+      "http://localhost:8000",                      # for local dev
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
