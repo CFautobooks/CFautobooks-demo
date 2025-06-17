@@ -1,10 +1,8 @@
-from pydantic import BaseModel
-from typing import Optional
+from pydantic import BaseModel, EmailStr
 
 class UserCreate(BaseModel):
-    email: str
+    email: EmailStr
     password: str
-    plan: str
 
 class Token(BaseModel):
     access_token: str
@@ -12,8 +10,7 @@ class Token(BaseModel):
 
 class Invoice(BaseModel):
     id: int
-    client_email: str
-    amount: float
+    total: float
     created_at: str
 
     class Config:
