@@ -1,26 +1,28 @@
+# backend/app/routers/auth.py
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
-from backend.schemas import UserCreate, Token
-from backend.core.database import get_db
-from backend.models.user import User
-from backend.utils.security import get_password_hash, verify_password, create_access_token
+from passlib.context import CryptContext
+from jose import jwt
+from app.core.database import get_db
+from app.models.user import User
+from app.core.config import settings
 
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 router = APIRouter(prefix="/auth", tags=["auth"])
 
-@router.post("/register", response_model=Token)
-def register(user: UserCreate, db: Session = Depends(get_db)):
-    db_user = db.query(User).filter(User.email == user.email).first()
-    if db_user:
-        raise HTTPException(400, "Email already registered")
-    new_user = User(email=user.email, hashed_password=get_password_hash(user.password))
-    db.add(new_user); db.commit(); db.refresh(new_user)
-    token = create_access_token({"sub": new_user.email})
-    return {"access_token": token, "token_type": "bearer"}
+@router.post("/register")
+def register(email: str, password: str, plan: str = "DIY", db: Session = Depends(get_db)):
+    if db.query(User).filter(User.email == email).first():
+        raise HTTPException(status_code=400, detail="Email already registered")
+    hashed = pwd_context.hash(password)
+    user = User(email=email, hashed_password=hashed, plan=plan)
+    db.add(user); db.commit(); db.refresh(user)
+    return {"msg": "registered"}
 
-@router.post("/login", response_model=Token)
-def login(user: UserCreate, db: Session = Depends(get_db)):
-    db_user = db.query(User).filter(User.email == user.email).first()
-    if not db_user or not verify_password(user.password, db_user.hashed_password):
-        raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Invalid credentials")
-    token = create_access_token({"sub": db_user.email})
+@router.post("/login")
+def login(email: str, password: str, db: Session = Depends(get_db)):
+    user = db.query(User).filter(User.email==email).first()
+    if not user or not pwd_context.verify(password, user.hashed_password):
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid credentials")
+    token = jwt.encode({"sub": user.email, "plan": user.plan}, settings.SECRET_KEY, algorithm="HS256")
     return {"access_token": token, "token_type": "bearer"}
