@@ -1,29 +1,35 @@
 from fastapi import APIRouter, Depends, HTTPException, status
-from fastapi.security import OAuth2PasswordRequestForm
+from pydantic import BaseModel, EmailStr
 from sqlalchemy.orm import Session
 
-from core.database import get_db
+from database import get_db
 from models.user import User
-from utils.security import verify_password, get_password_hash, create_access_token
-from schemas import UserCreate, UserResponse, Token
+from utils.security import verify_password, create_access_token
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
-@router.post("/register", response_model=UserResponse)
-def register(user: UserCreate, db: Session = Depends(get_db)):
-    existing = db.query(User).filter(User.email == user.email).first()
-    if existing:
-        raise HTTPException(status_code=400, detail="Email already registered")
-    hashed_pw = get_password_hash(user.password)
-    new_user = User(email=user.email, hashed_password=hashed_pw, plan=user.plan)
-    db.add(new_user); db.commit(); db.refresh(new_user)
-    return new_user
 
-@router.post("/login", response_model=Token)
-def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
-    user = db.query(User).filter(User.email == form_data.username).first()
-    if not user or not verify_password(form_data.password, user.hashed_password):
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Incorrect credentials")
+class LoginIn(BaseModel):
+    email: EmailStr
+    password: str
+
+
+class TokenOut(BaseModel):
+    access_token: str
+    token_type: str = "bearer"
+
+
+@router.post("/login", response_model=TokenOut)
+def login(data: LoginIn, db: Session = Depends(get_db)):
+    # 1) look up user
+    user = db.query(User).filter(User.email == data.email).first()
+    if not user:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid credentials")
+
+    # 2) verify password
+    if not verify_password(data.password, user.hashed_password):
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid credentials")
+
+    # 3) create & return JWT
     token = create_access_token({"sub": user.email})
     return {"access_token": token, "token_type": "bearer"}
-
