@@ -1,11 +1,11 @@
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.security import OAuth2PasswordBearer
 import jwt
-from core.config import settings
-from schemas import Invoice
+from backend.core.config import settings
+from backend.schemas import Invoice
 from sqlalchemy.orm import Session
-from core.database import get_db
-from models.invoice import Invoice as DBInvoice
+from backend.core.database import get_db
+from backend.models.invoice import Invoice as DBInvoice
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login")
 admin_router = APIRouter()
