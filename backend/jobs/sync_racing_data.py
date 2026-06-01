@@ -3,11 +3,13 @@ from __future__ import annotations
 import argparse
 from datetime import date
 
-from backend.core.database import SessionLocal
+from backend.core.database import Base, SessionLocal, engine
+import backend.models  # noqa: F401 - register SQLAlchemy models
 from backend.services.racing.sync import sync_all, sync_odds, sync_racecards, sync_results
 
 
 def main() -> None:
+    Base.metadata.create_all(bind=engine)
     parser = argparse.ArgumentParser(description="Sync racing form, odds, and results from configured APIs.")
     parser.add_argument("--date", default=date.today().isoformat(), help="Race date to sync in YYYY-MM-DD format.")
     parser.add_argument(

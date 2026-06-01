@@ -10,6 +10,7 @@ from sqlalchemy.orm import Session, joinedload
 from backend.core.config import settings
 from backend.core.database import get_db
 from backend.models.racing import Meeting, ModelRating, OddsSnapshot, Race, Result, Runner
+from backend.routers.auth import require_active_subscription
 from backend.services.racing.calculations import expected_value, fair_odds_from_probability
 from backend.services.racing.sync import (
     calculate_and_store_model_ratings,
@@ -24,8 +25,27 @@ router = APIRouter(prefix="/racing", tags=["racing"])
 
 
 def require_admin_token(x_admin_token: str | None = Header(default=None)) -> None:
-    if settings.ADMIN_API_TOKEN and x_admin_token != settings.ADMIN_API_TOKEN:
+    if not settings.ADMIN_API_TOKEN:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Admin API is not configured. Set ADMIN_API_TOKEN.",
+        )
+    if x_admin_token != settings.ADMIN_API_TOKEN:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid admin token")
+
+
+def provider_status_payload() -> dict[str, object]:
+    racing_ready = settings.racing_form_configured
+    odds_ready = settings.odds_configured
+    live_connected = racing_ready and odds_ready
+    return {
+        "live_provider_connected": live_connected,
+        "message": "Live racing and odds providers connected" if live_connected else "No live provider connected",
+        "racing_form_configured": racing_ready,
+        "odds_configured": odds_ready,
+        "racing_form_provider": settings.RACING_FORM_PROVIDER,
+        "odds_provider": settings.ODDS_PROVIDER,
+    }
 
 
 def _runner_payload(runner: Runner, rating: ModelRating | None, odds: OddsSnapshot | None) -> dict[str, Any]:
@@ -71,6 +91,11 @@ def _latest_odds_by_runner(db: Session, race_id: int) -> dict[int, OddsSnapshot]
         if current is None or row.odds_decimal > current.odds_decimal:
             best[row.runner_id] = row
     return best
+
+
+@router.get("/provider-status")
+def provider_status() -> dict[str, object]:
+    return provider_status_payload()
 
 
 @router.get("/dashboard/daily")
@@ -129,7 +154,7 @@ def daily_race_dashboard(
                 "races": races,
             }
         )
-    return {"date": race_date, "meetings": payload}
+    return {"date": race_date, "provider_status": provider_status_payload(), "meetings": payload}
 
 
 @router.get("/dashboard/best-bets")
@@ -137,6 +162,7 @@ def best_bets_dashboard(
     race_date: date = Query(default_factory=date.today),
     min_expected_value: float = 0.0,
     db: Session = Depends(get_db),
+    _paid_user = Depends(require_active_subscription),
 ) -> dict[str, Any]:
     rows = (
         db.query(ModelRating)
@@ -152,6 +178,7 @@ def best_bets_dashboard(
     )
     return {
         "date": race_date,
+        "provider_status": provider_status_payload(),
         "min_expected_value": min_expected_value,
         "bets": [
             {
@@ -170,6 +197,52 @@ def best_bets_dashboard(
             }
             for rating in rows
         ],
+    }
+
+
+@router.get("/runners/{runner_id}")
+def runner_detail(runner_id: int, db: Session = Depends(get_db)) -> dict[str, Any]:
+    runner = (
+        db.query(Runner)
+        .options(joinedload(Runner.race).joinedload(Race.meeting))
+        .options(joinedload(Runner.jockey))
+        .options(joinedload(Runner.trainer))
+        .filter(Runner.id == runner_id)
+        .first()
+    )
+    if not runner:
+        raise HTTPException(status_code=404, detail="Runner not found")
+    latest_odds = _latest_odds_by_runner(db, runner.race_id).get(runner.id)
+    rating = (
+        db.query(ModelRating)
+        .filter(ModelRating.runner_id == runner.id, ModelRating.race_id == runner.race_id)
+        .order_by(desc(ModelRating.created_at))
+        .first()
+    )
+    result = db.query(Result).filter(Result.runner_id == runner.id, Result.race_id == runner.race_id).first()
+    return {
+        "provider_status": provider_status_payload(),
+        "meeting": {
+            "track_name": runner.race.meeting.track_name,
+            "meeting_date": runner.race.meeting.meeting_date,
+            "track_condition": runner.race.meeting.track_condition,
+        },
+        "race": {
+            "id": runner.race.id,
+            "name": runner.race.name,
+            "race_number": runner.race.race_number,
+            "start_time": runner.race.start_time,
+            "distance_meters": runner.race.distance_meters,
+            "status": runner.race.status,
+        },
+        "runner": _runner_payload(runner, rating, latest_odds),
+        "past_form": runner.past_form,
+        "result": None if not result else {
+            "position": result.position,
+            "margin": float(result.margin) if result.margin is not None else None,
+            "starting_price": float(result.starting_price) if result.starting_price is not None else None,
+            "result_status": result.result_status,
+        },
     }
 
 
@@ -205,6 +278,7 @@ def results_tracker(
     )
     return {
         "date": race_date,
+        "provider_status": provider_status_payload(),
         "results": [
             {
                 "track": result.race.meeting.track_name,
@@ -238,7 +312,9 @@ def _sync_run_payload(run: Any) -> dict[str, Any]:
 
 @router.get("/admin/sync-status", dependencies=[Depends(require_admin_token)])
 def admin_sync_status(db: Session = Depends(get_db)) -> dict[str, Any]:
-    return sync_status(db)
+    status_payload = sync_status(db)
+    status_payload["provider_status"] = provider_status_payload()
+    return status_payload
 
 
 @router.post("/admin/sync", dependencies=[Depends(require_admin_token)])

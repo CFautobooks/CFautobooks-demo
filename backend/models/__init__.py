@@ -10,6 +10,7 @@ from backend.models.racing import (
     SyncRun,
     Trainer,
 )
+from backend.models.subscription import Subscription
 from backend.models.user import User
 
 __all__ = [
@@ -21,6 +22,7 @@ __all__ = [
     "Race",
     "Result",
     "Runner",
+    "Subscription",
     "SyncRun",
     "Trainer",
     "User",
