@@ -3,9 +3,9 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from passlib.context import CryptContext
 from jose import jwt
-from app.core.database import get_db
-from app.models.user import User
-from app.core.config import settings
+from backend.core.database import get_db
+from backend.models.user import User
+from backend.core.config import settings
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 router = APIRouter(prefix="/auth", tags=["auth"])

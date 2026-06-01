@@ -3,14 +3,16 @@ from fastapi import FastAPI, Depends, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 from jose import jwt
-from app.core.database import engine, get_db, Base
-from app.routers.auth import router as auth_router
-from app.models.user import User
+from backend.core.database import engine, get_db, Base
+from backend.routers.auth import router as auth_router
+from backend.core.config import settings
+import backend.models  # noqa: F401 - register tables with SQLAlchemy metadata
+from backend.routers.racing import router as racing_router
 
 # create all tables
 Base.metadata.create_all(bind=engine)
 
-app = FastAPI(title="CF AutoBooks API")
+app = FastAPI(title="Horse Racing Analytics API")
 
 app.add_middleware(
     CORSMiddleware,
@@ -21,12 +23,13 @@ app.add_middleware(
 )
 
 app.include_router(auth_router)
+app.include_router(racing_router)
 
 # Protected admin route
 @app.get("/admin/invoices")
 def admin_invoices(token: str, db: Session = Depends(get_db)):
     try:
-        payload = jwt.decode(token, __import__("app.core.config").core.config.settings.SECRET_KEY, algorithms=["HS256"])
+        payload = jwt.decode(token, settings.SECRET_KEY, algorithms=["HS256"])
     except:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Invalid token")
     if payload.get("plan") != "CARMICHAEL":

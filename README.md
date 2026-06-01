@@ -90,3 +90,55 @@ CF_AutoBooks_Full_Demo/
 - Implement Xero/MYOB integration for pushing finalized transactions.
 
 This setup gives you a fully integrated local demo. Visit `http://localhost/` to explore.
+## Horse Racing Analytics Foundation
+
+This branch adds the first live-data foundation for a horse racing analytics product. Manual CSV upload is not part of the primary flow. Racing form and odds data are pulled from configured external APIs using environment variables for credentials.
+
+### Secure environment variables
+
+Copy `backend/.env.example` to `backend/.env` for local development and set real provider credentials outside source control:
+
+```bash
+DATABASE_URL=postgresql://...supabase.co:5432/postgres
+RACING_FORM_API_BASE_URL=https://your-racing-form-provider.example
+RACING_FORM_API_KEY=...
+ODDS_API_BASE_URL=https://your-odds-provider.example
+ODDS_API_KEY=...
+ADMIN_API_TOKEN=...
+```
+
+### Provider layer
+
+The default adapters are generic HTTP providers configured by URL/path environment variables. To swap providers later, add a provider adapter in `backend/services/racing/providers.py` that implements the `RacingFormProvider` or `OddsProvider` protocol and select it with `RACING_FORM_PROVIDER` or `ODDS_PROVIDER`.
+
+### Database schema
+
+Supabase/PostgreSQL schema is in `supabase/migrations/0001_racing_core.sql` and includes:
+
+- race meetings, races, runners, jockeys, trainers
+- odds snapshots and market movement payloads
+- results
+- model ratings with fair odds, expected value, confidence, transparent calculation inputs, and insufficient-data statuses
+- API sync run monitoring and missing-field logging
+
+### Scheduled API sync
+
+Run from cron or a hosted scheduler:
+
+```bash
+python3 -m backend.jobs.sync_racing_data --sync all --date $(date +%F)
+python3 -m backend.jobs.sync_racing_data --sync odds
+python3 -m backend.jobs.sync_racing_data --sync results --date $(date +%F)
+```
+
+### API endpoints
+
+- `GET /racing/dashboard/daily` - daily race dashboard data
+- `GET /racing/dashboard/best-bets` - deterministic best bets sorted by expected value
+- `GET /racing/calculators/fair-odds?probability=0.25`
+- `GET /racing/calculators/expected-value?probability=0.25&decimal_odds=5.0`
+- `GET /racing/results/tracker`
+- `GET /racing/admin/sync-status` - admin sync monitoring
+- `POST /racing/admin/sync?sync_type=all` - admin sync trigger
+
+The model does not choose tips randomly. Ratings are calculated from API-supplied past form, barrier, weight, and market odds. If required fields are unavailable, the runner/rating is marked `insufficient data` and excluded from best-bet output. OpenAI should only be used later to explain an already calculated rating, not to select runners.
