@@ -8,7 +8,8 @@ A live-data-first horse racing analytics MVP with:
 - JSON auth with server-side subscription status
 - Stripe Checkout and webhook plumbing
 - Generic racing form and odds provider adapters
-- Scheduled sync job entrypoint
+- Web-sourced scraping provider adapters with rate limiting and scrape status logs
+- Scheduled sync and scraping job entrypoints
 - Deterministic ratings for fair odds, expected value, confidence, and best-bets ranking
 
 The app does not fabricate tips. If racing form or odds providers are not configured, dashboards show `No live provider connected` and no fake race data is generated.
@@ -75,6 +76,14 @@ ODDS_API_KEY=
 ODDS_API_KEY_HEADER=Authorization
 ODDS_MARKETS_PATH=/odds
 
+SCRAPING_RATE_LIMIT_SECONDS=3
+SCRAPING_HTTP_TIMEOUT_SECONDS=20
+SCRAPING_USER_AGENT=HorseRacingAnalyticsBot/0.1
+TAB_SCRAPE_URL=
+SPORTSBET_SCRAPE_URL=
+RACING_COM_SCRAPE_URL=
+PUNTERS_SCRAPE_URL=
+
 STRIPE_API_KEY=
 STRIPE_WEBHOOK_SECRET=
 STRIPE_PRICE_ID=
@@ -111,6 +120,7 @@ Do not expose `ADMIN_API_TOKEN` through a `NEXT_PUBLIC_` variable. The admin syn
 - `GET /racing/results/tracker`
 - `GET /racing/admin/sync-status` - requires `X-Admin-Token`
 - `POST /racing/admin/sync` - requires `X-Admin-Token`
+- `POST /racing/admin/scrape` - triggers web-sourced scraping; requires `X-Admin-Token`
 - `POST /billing/create-checkout-session`
 - `POST /billing/webhook`
 - `GET /billing/subscription`
@@ -124,7 +134,25 @@ python3 -m backend.jobs.sync_racing_data --sync racecards --date 2026-06-01
 python3 -m backend.jobs.sync_racing_data --sync odds
 python3 -m backend.jobs.sync_racing_data --sync results --date 2026-06-01
 python3 -m backend.jobs.sync_racing_data --sync all --date 2026-06-01
+python3 -m backend.jobs.sync_racing_data --sync scraping --date 2026-06-01
+python3 -m backend.jobs.scrape_racing_data --source all --date 2026-06-01
 ```
+
+## Web-sourced data collection
+
+Scraper modules live in `backend/services/racing/scrapers/`:
+
+- `base_scraper.py`
+- `tab_scraper.py`
+- `sportsbet_scraper.py`
+- `racing_com_scraper.py`
+- `punters_scraper.py`
+
+Scraped records are written to the same normalized database tables first and labelled as `web-sourced data` via `data_source='web_sourced'` before any model rating uses them. The statistical model only reads structured runners, weights, barriers, past form, and odds snapshots from the database; it does not rate from raw webpage text.
+
+Scraping includes rate limiting, missing-field quality checks, duplicate prevention through provider/external IDs, runner matching by external ID and normalized horse name, and odds update history via `odds_snapshots`. If a source URL is missing, blocked, or unreliable, status logs show `unavailable` or `failed` and dashboards show `No live provider connected`, `Data source unavailable`, or `Insufficient data` rather than fake results.
+
+Important: check each source's robots.txt, terms of use, and licensing before using any scraper commercially. Prefer official APIs where available.
 
 ## Provider integration TODO
 

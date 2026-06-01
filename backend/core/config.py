@@ -32,6 +32,14 @@ class Settings(BaseSettings):
     ODDS_API_KEY_HEADER: str = "Authorization"
     ODDS_MARKETS_PATH: str = "/odds"
 
+    SCRAPING_RATE_LIMIT_SECONDS: float = 3.0
+    SCRAPING_HTTP_TIMEOUT_SECONDS: float = 20.0
+    SCRAPING_USER_AGENT: str = "HorseRacingAnalyticsBot/0.1"
+    TAB_SCRAPE_URL: str | None = None
+    SPORTSBET_SCRAPE_URL: str | None = None
+    RACING_COM_SCRAPE_URL: str | None = None
+    PUNTERS_SCRAPE_URL: str | None = None
+
     ADMIN_API_TOKEN: str | None = None
     SYNC_LOOKAHEAD_DAYS: int = 1
     HTTP_TIMEOUT_SECONDS: float = 15.0

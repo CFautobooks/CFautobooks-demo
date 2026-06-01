@@ -6,6 +6,7 @@ from datetime import date
 from backend.core.database import Base, SessionLocal, engine
 import backend.models  # noqa: F401 - register SQLAlchemy models
 from backend.services.racing.sync import sync_all, sync_odds, sync_racecards, sync_results
+from backend.services.racing.scraping_sync import sync_scraping_sources
 
 
 def main() -> None:
@@ -15,7 +16,7 @@ def main() -> None:
     parser.add_argument(
         "--sync",
         default="all",
-        choices=["all", "racecards", "odds", "results"],
+        choices=["all", "racecards", "odds", "results", "scraping"],
         help="Data set to sync. Intended for cron execution.",
     )
     args = parser.parse_args()
@@ -29,8 +30,10 @@ def main() -> None:
             runs = [sync_racecards(db, race_date)]
         elif args.sync == "odds":
             runs = [sync_odds(db)]
-        else:
+        elif args.sync == "results":
             runs = [sync_results(db, race_date)]
+        else:
+            runs = sync_scraping_sources(db, race_date)
 
         for run in runs:
             print(

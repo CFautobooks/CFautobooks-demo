@@ -36,16 +36,16 @@ export default function BestBetsPage() {
       <ProviderBanner status={data?.provider_status} />
       <div className="table-wrap">
         <table>
-          <thead><tr><th>Track</th><th>Race</th><th>Runner</th><th>Win %</th><th>Fair Odds</th><th>Market Odds</th><th>EV</th><th>Confidence</th></tr></thead>
+          <thead><tr><th>Track</th><th>Race</th><th>Runner</th><th>Win %</th><th>Fair Odds</th><th>Market Odds</th><th>EV</th><th>Confidence</th><th>Stake</th><th>Source</th></tr></thead>
           <tbody>
             {(data?.bets || []).map((bet) => (
               <tr key={`${bet.race_id}-${bet.runner_id}`}>
                 <td>{bet.track}</td><td>{bet.race}</td>
                 <td><Link href={`/runners/${bet.runner_id}`}>{bet.horse_name}</Link></td>
-                <td>{bet.win_probability ?? "-"}</td><td>{bet.fair_odds ?? "-"}</td><td>{bet.bookmaker_odds ?? "-"}</td><td>{bet.expected_value ?? "-"}</td><td>{bet.confidence_label}</td>
+                <td>{bet.win_probability ?? "-"}</td><td>{bet.fair_odds ?? "-"}</td><td>{bet.bookmaker_odds ?? "-"}</td><td>{bet.expected_value ?? "-"}</td><td>{bet.confidence_label}</td><td>{bet.suggested_staking_unit ?? "-"}</td><td>{bet.source_label || "-"}</td>
               </tr>
             ))}
-            {data && !data.bets?.length && <tr><td colSpan="8">No calculated positive-value bets. Live provider data is required.</td></tr>}
+            {data && !data.bets?.length && <tr><td colSpan="10">No calculated positive-value bets. Live provider data is required.</td></tr>}
           </tbody>
         </table>
       </div>

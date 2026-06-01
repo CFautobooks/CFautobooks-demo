@@ -11,6 +11,7 @@ from backend.core.config import settings
 from backend.core.database import get_db
 from backend.models.racing import Meeting, ModelRating, OddsSnapshot, Race, Result, Runner
 from backend.routers.auth import require_active_subscription
+from backend.services.racing.scraping_sync import sync_scraping_sources
 from backend.services.racing.calculations import expected_value, fair_odds_from_probability
 from backend.services.racing.sync import (
     calculate_and_store_model_ratings,
@@ -45,6 +46,8 @@ def provider_status_payload() -> dict[str, object]:
         "odds_configured": odds_ready,
         "racing_form_provider": settings.RACING_FORM_PROVIDER,
         "odds_provider": settings.ODDS_PROVIDER,
+        "web_sourced_data_supported": True,
+        "web_sourced_data_label": "web-sourced data",
     }
 
 
@@ -59,6 +62,8 @@ def _runner_payload(runner: Runner, rating: ModelRating | None, odds: OddsSnapsh
         "trainer": runner.trainer.name if runner.trainer else None,
         "scratched": runner.scratched,
         "data_quality_status": runner.data_quality_status,
+        "data_source": runner.data_source,
+        "source_label": "web-sourced data" if runner.data_source == "web_sourced" else "official API data",
         "missing_data_fields": runner.missing_data_fields,
         "latest_odds": float(odds.odds_decimal) if odds else None,
         "bookmaker": odds.bookmaker if odds else None,
@@ -70,6 +75,7 @@ def _runner_payload(runner: Runner, rating: ModelRating | None, odds: OddsSnapsh
             "expected_value": rating.expected_value,
             "confidence_score": rating.confidence_score,
             "confidence_label": rating.confidence_label,
+            "suggested_staking_unit": rating.suggested_staking_unit,
             "data_quality_status": rating.data_quality_status,
             "missing_data_fields": rating.missing_data_fields,
             "calculation_inputs": rating.calculation_inputs,
@@ -132,6 +138,8 @@ def daily_race_dashboard(
                     "race_class": race.race_class,
                     "status": race.status,
                     "track_condition": race.track_condition,
+                    "data_source": race.data_source,
+                    "source_label": "web-sourced data" if race.data_source == "web_sourced" else "official API data",
                     "data_quality_status": race.data_quality_status,
                     "missing_data_fields": race.missing_data_fields,
                     "runners": [
@@ -150,6 +158,8 @@ def daily_race_dashboard(
                 "track_condition": meeting.track_condition,
                 "weather": meeting.weather,
                 "data_quality_status": meeting.data_quality_status,
+                "data_source": meeting.data_source,
+                "source_label": "web-sourced data" if meeting.data_source == "web_sourced" else "official API data",
                 "missing_data_fields": meeting.missing_data_fields,
                 "races": races,
             }
@@ -193,6 +203,9 @@ def best_bets_dashboard(
                 "expected_value": rating.expected_value,
                 "confidence_score": rating.confidence_score,
                 "confidence_label": rating.confidence_label,
+                "suggested_staking_unit": rating.suggested_staking_unit,
+                "data_source": rating.runner.data_source,
+                "source_label": "web-sourced data" if rating.runner.data_source == "web_sourced" else "official API data",
                 "calculation_inputs": rating.calculation_inputs,
             }
             for rating in rows
@@ -319,8 +332,9 @@ def admin_sync_status(db: Session = Depends(get_db)) -> dict[str, Any]:
 
 @router.post("/admin/sync", dependencies=[Depends(require_admin_token)])
 def admin_trigger_sync(
-    sync_type: str = Query(default="all", pattern="^(all|racecards|odds|results|ratings)$"),
+    sync_type: str = Query(default="all", pattern="^(all|racecards|odds|results|ratings|scraping)$"),
     race_date: date = Query(default_factory=date.today),
+    scrape_source: str = Query(default="all", pattern="^(all|tab|sportsbet|racing_com|punters)$"),
     db: Session = Depends(get_db),
 ) -> dict[str, Any]:
     if sync_type == "all":
@@ -332,9 +346,22 @@ def admin_trigger_sync(
         return {"sync_type": sync_type, "run": _sync_run_payload(sync_odds(db))}
     if sync_type == "results":
         return {"sync_type": sync_type, "run": _sync_run_payload(sync_results(db, race_date))}
+    if sync_type == "scraping":
+        runs = sync_scraping_sources(db, race_date, scrape_source)
+        return {"sync_type": sync_type, "scrape_source": scrape_source, "runs": [_sync_run_payload(run) for run in runs]}
     races = db.query(Race).join(Meeting).filter(Meeting.meeting_date == race_date).all()
     ratings = []
     for race in races:
         ratings.extend(calculate_and_store_model_ratings(db, race.id))
     db.commit()
     return {"sync_type": sync_type, "ratings_created": len(ratings)}
+
+
+@router.post("/admin/scrape", dependencies=[Depends(require_admin_token)])
+def admin_trigger_scraping(
+    race_date: date = Query(default_factory=date.today),
+    scrape_source: str = Query(default="all", pattern="^(all|tab|sportsbet|racing_com|punters)$"),
+    db: Session = Depends(get_db),
+) -> dict[str, Any]:
+    runs = sync_scraping_sources(db, race_date, scrape_source)
+    return {"sync_type": "scraping", "scrape_source": scrape_source, "runs": [_sync_run_payload(run) for run in runs]}

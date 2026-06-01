@@ -43,7 +43,7 @@ export default function DailyPage() {
                 <p className="muted">{new Date(race.start_time).toLocaleString()} | {race.distance_meters || "?"}m | {race.data_quality_status}</p>
                 <div className="table-wrap">
                   <table>
-                    <thead><tr><th>Runner</th><th>Barrier</th><th>Weight</th><th>Jockey</th><th>Odds</th><th>Fair</th><th>EV</th><th>Confidence</th></tr></thead>
+                    <thead><tr><th>Runner</th><th>Barrier</th><th>Weight</th><th>Jockey</th><th>Odds</th><th>Fair</th><th>EV</th><th>Confidence</th><th>Source</th><th>Stake</th></tr></thead>
                     <tbody>
                       {race.runners.map((runner) => (
                         <tr key={runner.id}>
@@ -55,6 +55,8 @@ export default function DailyPage() {
                           <td>{runner.model_rating?.fair_odds ?? "-"}</td>
                           <td>{runner.model_rating?.expected_value ?? "-"}</td>
                           <td>{runner.model_rating?.confidence_label || runner.data_quality_status}</td>
+                          <td>{runner.source_label || "-"}</td>
+                          <td>{runner.model_rating?.suggested_staking_unit ?? "-"}</td>
                         </tr>
                       ))}
                     </tbody>

@@ -28,6 +28,7 @@ export default function RunnerDetailPage() {
             <p>Jockey: {runner.jockey || "-"}</p>
             <p>Trainer: {runner.trainer || "-"}</p>
             <p>Status: {runner.data_quality_status}</p>
+            <p>Source: {runner.source_label || "-"}</p>
           </div>
           <div className="card">
             <h2>Rating</h2>
@@ -35,6 +36,7 @@ export default function RunnerDetailPage() {
             <p>Fair odds: {runner.model_rating?.fair_odds ?? "-"}</p>
             <p>Expected value: {runner.model_rating?.expected_value ?? "-"}</p>
             <p>Confidence: {runner.model_rating?.confidence_label || "insufficient data"}</p>
+            <p>Suggested staking unit: {runner.model_rating?.suggested_staking_unit ?? "-"}</p>
             <p className="muted">Missing: {(runner.model_rating?.missing_data_fields || runner.missing_data_fields || []).join(", ") || "none"}</p>
           </div>
           <div className="card">
