@@ -12,6 +12,7 @@ import backend.models  # noqa: F401 - register SQLAlchemy models
 from backend.models.racing import Meeting, ModelRating, OddsSnapshot, Race, Runner, SyncRun
 from backend.services.racing.scrapers.base_scraper import BaseRacingScraper, ScrapeConfig
 from backend.services.racing.scraping_sync import sync_scraper
+from backend.services.racing.scrapers.punters_scraper import PuntersScraper
 
 
 HEADER_FIXTURE_HTML = """
@@ -137,3 +138,33 @@ def test_scraping_sync_saves_structured_data_prevents_duplicate_odds_and_calcula
         assert diagnostics["odds_parsed"] == 2
     finally:
         db.close()
+
+
+
+def test_punters_parser_extracts_source_specific_form_table_without_header_rows():
+    html = """
+    <html><head><title>Fixture Racecard</title></head><body>
+    <h1>Fixture Park Races</h1>
+    <h2>Fixture Park, VIC</h2>
+    <h3>R3 Fixture Cup 3:20pm</h3>
+    <table>
+      <thead><tr><th>Runner</th><th>Barrier</th><th>Jockey</th><th>Trainer</th><th>Weight</th><th>Odds</th></tr></thead>
+      <tbody>
+        <tr><td>Runner</td><td>Barrier</td><td>Jockey</td><td>Trainer</td><td>Weight</td><td>Odds</td></tr>
+        <tr><td>Fast Comet</td><td>2</td><td>J Smith</td><td>A Trainer</td><td>56.5</td><td>3.20</td></tr>
+        <tr><td>River Queen</td><td>7</td><td>L Jones</td><td>B Stable</td><td>58.0</td><td>4.60</td></tr>
+      </tbody>
+    </table>
+    </body></html>
+    """
+    scraper = PuntersScraper(start_url="https://fixture.test", use_playwright=False)
+    meetings = scraper.parse(html, date(2026, 6, 1))
+
+    assert len(meetings) == 1
+    assert meetings[0].track_name == "Fixture Park"
+    assert len(meetings[0].races) == 1
+    race = meetings[0].races[0]
+    assert race.race_number == 3
+    assert race.name == "Fixture Cup"
+    assert [runner.horse_name for runner in race.runners] == ["Fast Comet", "River Queen"]
+    assert [float(odds.odds_decimal) for odds in race.odds] == [3.2, 4.6]
