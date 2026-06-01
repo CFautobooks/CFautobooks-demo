@@ -11,6 +11,7 @@ from backend.models.racing import Jockey, Meeting, OddsSnapshot, Race, Result, R
 from backend.services.racing.scrapers import PuntersScraper, RacingComScraper, SportsbetScraper, TabScraper
 from backend.services.racing.scrapers.base_scraper import (
     BaseRacingScraper,
+    ScrapeResult,
     ScrapedMeeting,
     ScrapedOdds,
     ScrapedRace,
@@ -23,6 +24,28 @@ from backend.services.racing.sync import calculate_and_store_model_ratings
 
 logger = logging.getLogger(__name__)
 WEB_DATA_SOURCE = "web_sourced"
+
+
+def _diagnostics_payload(scrape_result: ScrapeResult) -> dict[str, Any]:
+    diagnostics = scrape_result.diagnostics
+    return {
+        "http_status_code": diagnostics.http_status_code,
+        "page_title": diagnostics.page_title,
+        "tables_found": diagnostics.tables_found,
+        "json_ld_found": diagnostics.json_ld_found,
+        "meetings_parsed": diagnostics.meetings_parsed,
+        "races_parsed": diagnostics.races_parsed,
+        "runners_parsed": diagnostics.runners_parsed,
+        "odds_parsed": diagnostics.odds_parsed,
+        "zero_records_reason": diagnostics.zero_records_reason,
+        "used_playwright": diagnostics.used_playwright,
+    }
+
+
+def _attach_scrape_diagnostics(run: SyncRun, scrape_result: ScrapeResult) -> None:
+    metadata = dict(run.metadata_json or {})
+    metadata["scrape_diagnostics"] = _diagnostics_payload(scrape_result)
+    run.metadata_json = metadata
 
 
 def available_scrapers() -> dict[str, type[BaseRacingScraper]]:
@@ -281,6 +304,7 @@ def _store_scraped_meeting(db: Session, provider: str, scraped: ScrapedMeeting, 
             missing_fields.extend(f"odds.{field}" for field in missing)
             if stored:
                 records += 1
+            if not missing:
                 rating_race_ids.add(race.id)
         for scraped_result in scraped_race.results:
             stored, missing = _store_result(db, provider, race, scraped_result)
@@ -296,6 +320,7 @@ def sync_scraper(db: Session, scraper: BaseRacingScraper, race_date: date) -> Sy
     missing_fields: list[str] = []
     try:
         scrape_result = scraper.scrape(race_date)
+        _attach_scrape_diagnostics(run, scrape_result)
         if scrape_result.status in {"failed", "unavailable"}:
             return _finish_run(db, run, scrape_result.status, 0, scrape_result.missing_data_fields, scrape_result.error_message)
         provider = f"web:{scraper.source_name}"
@@ -303,6 +328,7 @@ def sync_scraper(db: Session, scraper: BaseRacingScraper, race_date: date) -> Sy
             count, missing, rating_race_ids = _store_scraped_meeting(db, provider, meeting, race_date)
             records += count
             missing_fields.extend(missing)
+            db.flush()
             for race_id in rating_race_ids:
                 calculate_and_store_model_ratings(db, race_id)
         db.commit()

@@ -12,6 +12,8 @@ from urllib.parse import urljoin
 
 import httpx
 from bs4 import BeautifulSoup
+from playwright.sync_api import Error as PlaywrightError
+from playwright.sync_api import TimeoutError as PlaywrightTimeoutError
 
 from backend.core.config import settings
 
@@ -103,6 +105,20 @@ class ScrapedMeeting:
 
 
 @dataclass
+class ScrapeDiagnostics:
+    http_status_code: int | None = None
+    page_title: str | None = None
+    tables_found: int = 0
+    json_ld_found: int = 0
+    meetings_parsed: int = 0
+    races_parsed: int = 0
+    runners_parsed: int = 0
+    odds_parsed: int = 0
+    zero_records_reason: str | None = None
+    used_playwright: bool = False
+
+
+@dataclass
 class ScrapeResult:
     source_name: str
     status: str
@@ -110,6 +126,7 @@ class ScrapeResult:
     error_message: str | None = None
     missing_data_fields: list[str] = field(default_factory=list)
     fetched_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
+    diagnostics: ScrapeDiagnostics = field(default_factory=ScrapeDiagnostics)
 
 
 def normalize_name(value: str | None) -> str:
@@ -169,24 +186,92 @@ class BaseRacingScraper:
     def __init__(self, config: ScrapeConfig):
         self.config = config
         self._last_request_monotonic = 0.0
+        self._last_http_status_code: int | None = None
+        self._last_used_playwright = False
 
     def scrape(self, race_date: date) -> ScrapeResult:
         if not self.config.start_url:
+            diagnostics = ScrapeDiagnostics(zero_records_reason="scraper URL is not configured")
             return ScrapeResult(
                 source_name=self.source_name,
                 status="unavailable",
                 error_message="Data source unavailable: scraper URL is not configured.",
+                diagnostics=diagnostics,
             )
         try:
             html = self.fetch_page(self.build_url(race_date))
+            if self._looks_blocked_or_empty(html):
+                if not self.config.use_playwright:
+                    logger.info("%s returned empty/blocked HTML; retrying with Playwright", self.source_name)
+                    html = self.fetch_page_with_playwright(self.build_url(race_date))
+                if self._looks_blocked_or_empty(html):
+                    diagnostics = self.build_diagnostics(html, [])
+                    diagnostics.zero_records_reason = "blocked or empty page after browser fetch"
+                    return ScrapeResult(
+                        self.source_name,
+                        "unavailable",
+                        error_message="Data source unavailable: blocked or empty page.",
+                        diagnostics=diagnostics,
+                    )
             meetings = self.parse(html, race_date)
+            diagnostics = self.build_diagnostics(html, meetings)
             missing = self.collect_missing_fields(meetings)
+            if not meetings:
+                diagnostics.zero_records_reason = diagnostics.zero_records_reason or "no parseable meetings found"
+                missing = sorted(set([*missing, "meetings"]))
             status = "completed_with_warnings" if missing else "completed"
-            logger.info("Scraping succeeded for %s: meetings=%s missing=%s", self.source_name, len(meetings), missing)
-            return ScrapeResult(self.source_name, status, meetings, missing_data_fields=missing)
+            logger.info(
+                "Scraping succeeded for %s: http_status=%s title=%r tables=%s json_ld=%s meetings=%s races=%s runners=%s odds=%s missing=%s zero_reason=%s",
+                self.source_name, diagnostics.http_status_code, diagnostics.page_title, diagnostics.tables_found,
+                diagnostics.json_ld_found, diagnostics.meetings_parsed, diagnostics.races_parsed, diagnostics.runners_parsed,
+                diagnostics.odds_parsed, missing, diagnostics.zero_records_reason,
+            )
+            return ScrapeResult(self.source_name, status, meetings, missing_data_fields=missing, diagnostics=diagnostics)
+        except httpx.HTTPStatusError as exc:
+            return self._http_error_result(exc)
+        except httpx.TimeoutException as exc:
+            logger.warning("Scraping timed out for %s: %s", self.source_name, exc)
+            return ScrapeResult(
+                self.source_name,
+                "failed",
+                error_message=f"Data source timeout: {exc}",
+                diagnostics=ScrapeDiagnostics(http_status_code=self._last_http_status_code, zero_records_reason="timeout"),
+            )
+        except PlaywrightTimeoutError as exc:
+            logger.warning("Browser scraping timed out for %s: %s", self.source_name, exc)
+            return ScrapeResult(
+                self.source_name,
+                "failed",
+                error_message=f"Browser data source timeout: {exc}",
+                diagnostics=ScrapeDiagnostics(http_status_code=self._last_http_status_code, used_playwright=True, zero_records_reason="browser timeout"),
+            )
+        except PlaywrightError as exc:
+            logger.warning("Browser scraping unavailable for %s: %s", self.source_name, exc)
+            message = str(exc)
+            if "Executable doesn't exist" in message or "playwright install" in message:
+                message = "Browser fetch unavailable: Playwright browser is not installed. Run `python -m playwright install chromium`."
+            return ScrapeResult(
+                self.source_name,
+                "unavailable",
+                error_message=message,
+                diagnostics=ScrapeDiagnostics(
+                    http_status_code=self._last_http_status_code,
+                    used_playwright=True,
+                    zero_records_reason="browser fetch unavailable",
+                ),
+            )
         except Exception as exc:
             logger.exception("Scraping failed for %s", self.source_name)
-            return ScrapeResult(self.source_name, "failed", error_message=str(exc))
+            return ScrapeResult(
+                self.source_name,
+                "failed",
+                error_message=str(exc),
+                diagnostics=ScrapeDiagnostics(
+                    http_status_code=self._last_http_status_code,
+                    used_playwright=self._last_used_playwright,
+                    zero_records_reason="unexpected scraper error",
+                ),
+            )
 
     def build_url(self, race_date: date) -> str:
         assert self.config.start_url is not None
@@ -199,9 +284,12 @@ class BaseRacingScraper:
         self._last_request_monotonic = time.monotonic()
         if self.config.use_playwright:
             return self.fetch_page_with_playwright(url)
+        self._last_used_playwright = False
         headers = {"User-Agent": self.config.user_agent}
         with httpx.Client(timeout=self.config.timeout_seconds, follow_redirects=True, headers=headers) as client:
             response = client.get(url)
+            self._last_http_status_code = response.status_code
+            logger.info("Scraper %s fetched %s with HTTP %s", self.source_name, url, response.status_code)
             response.raise_for_status()
             return response.text
 
@@ -209,14 +297,69 @@ class BaseRacingScraper:
         try:
             from playwright.sync_api import sync_playwright
         except ImportError as exc:
-            raise ScraperUnavailableError("Playwright is not installed. Install/playwright browsers before JS-rendered scraping.") from exc
+            raise ScraperUnavailableError("Playwright is not installed. Install Playwright browsers before JS-rendered scraping.") from exc
+        self._last_used_playwright = True
         with sync_playwright() as playwright:
             browser = playwright.chromium.launch(headless=True)
             page = browser.new_page(user_agent=self.config.user_agent)
-            page.goto(url, wait_until="networkidle", timeout=int(self.config.timeout_seconds * 1000))
+            response = page.goto(url, wait_until="networkidle", timeout=int(self.config.timeout_seconds * 1000))
+            self._last_http_status_code = response.status if response else None
+            logger.info("Browser scraper %s fetched %s with HTTP %s", self.source_name, url, self._last_http_status_code)
             html = page.content()
             browser.close()
             return html
+
+    def _http_error_result(self, exc: httpx.HTTPStatusError) -> ScrapeResult:
+        status_code = exc.response.status_code
+        if status_code == 403:
+            reason = "blocked by source (403 Forbidden)"
+            status = "unavailable"
+        elif status_code == 404:
+            reason = "source page not found (404)"
+            status = "unavailable"
+        else:
+            reason = f"HTTP error {status_code}"
+            status = "failed"
+        logger.warning("Scraping failed for %s: %s", self.source_name, reason)
+        return ScrapeResult(
+            self.source_name,
+            status,
+            error_message=f"Data source unavailable: {reason} for url '{exc.request.url}'",
+            diagnostics=ScrapeDiagnostics(http_status_code=status_code, zero_records_reason=reason, used_playwright=self._last_used_playwright),
+        )
+
+    def _looks_blocked_or_empty(self, html: str) -> bool:
+        text = BeautifulSoup(html or "", "html.parser").get_text(" ", strip=True).lower()
+        if len(text) < 40:
+            return True
+        blocked_terms = ("access denied", "forbidden", "captcha", "enable javascript", "just a moment", "blocked")
+        return any(term in text for term in blocked_terms)
+
+    def build_diagnostics(self, html: str, meetings: list[ScrapedMeeting]) -> ScrapeDiagnostics:
+        soup = BeautifulSoup(html or "", "html.parser")
+        title = soup.find("title") or soup.find("h1")
+        races = [race for meeting in meetings for race in meeting.races]
+        runners = [runner for race in races for runner in race.runners]
+        odds = [odds for race in races for odds in race.odds]
+        diagnostics = ScrapeDiagnostics(
+            http_status_code=self._last_http_status_code,
+            page_title=title.get_text(" ", strip=True) if title else None,
+            tables_found=len(soup.find_all("table")),
+            json_ld_found=len(soup.find_all("script", type="application/ld+json")),
+            meetings_parsed=len(meetings),
+            races_parsed=len(races),
+            runners_parsed=len(runners),
+            odds_parsed=len(odds),
+            used_playwright=self._last_used_playwright,
+        )
+        if not meetings:
+            if diagnostics.tables_found == 0 and diagnostics.json_ld_found == 0:
+                diagnostics.zero_records_reason = "no JSON-LD or tables found"
+            elif diagnostics.tables_found > 0:
+                diagnostics.zero_records_reason = "tables found but no runner rows matched expected headings"
+            else:
+                diagnostics.zero_records_reason = "JSON-LD found but no racing meeting fields matched"
+        return diagnostics
 
     def parse(self, html: str, race_date: date) -> list[ScrapedMeeting]:
         soup = BeautifulSoup(html, "html.parser")
@@ -248,6 +391,14 @@ class BaseRacingScraper:
                 meetings.append(meeting)
         return meetings
 
+    def _extract_headers(self, table: Any) -> list[str]:
+        header_row = table.select_one("thead tr")
+        if header_row is None:
+            header_row = next((row for row in table.find_all("tr") if row.find("th") is not None), None)
+        if header_row is None:
+            return []
+        return [normalize_name(cell.get_text(" ", strip=True)) for cell in header_row.find_all(["th", "td"])]
+
     def parse_tables(self, soup: BeautifulSoup, race_date: date) -> list[ScrapedMeeting]:
         # Generic fallback for pages with simple HTML tables. Provider-specific
         # adapters should override this once real, permitted source payloads are known.
@@ -260,7 +411,7 @@ class BaseRacingScraper:
             raw_payload={"source_type": "html_table_fallback"},
         )
         for index, table in enumerate(soup.find_all("table"), start=1):
-            headers = [normalize_name(cell.get_text(" ", strip=True)) for cell in table.find_all("th")]
+            headers = self._extract_headers(table)
             if not headers:
                 continue
             race = ScrapedRace(
@@ -272,7 +423,7 @@ class BaseRacingScraper:
             )
             for row in table.find_all("tr"):
                 cells = [cell.get_text(" ", strip=True) for cell in row.find_all(["td", "th"])]
-                if len(cells) < 2 or cells == headers:
+                if len(cells) < 2 or self._is_header_row(row, headers, cells):
                     continue
                 mapped = {headers[i]: cells[i] for i in range(min(len(headers), len(cells)))}
                 horse_name = self._field(mapped, "runner", "horse", "name", "selection")
@@ -303,6 +454,17 @@ class BaseRacingScraper:
             if race.runners or race.odds:
                 meeting.races.append(race)
         return [meeting] if meeting.races else []
+
+    def _is_header_row(self, row: Any, headers: list[str], cells: list[str]) -> bool:
+        if row.find("th") is not None:
+            return True
+        normalized_cells = [normalize_name(cell) for cell in cells]
+        normalized_cells = [cell for cell in normalized_cells if cell]
+        if normalized_cells == headers[: len(normalized_cells)]:
+            return True
+        header_terms = {"runner", "horse", "name", "selection"}
+        first_cell = normalized_cells[0] if normalized_cells else ""
+        return first_cell in header_terms and any(cell in {"barrier", "draw", "jockey", "trainer", "weight", "odds", "fixed odds", "price"} for cell in normalized_cells[1:])
 
     def _field(self, mapped: dict[str, str], *names: str) -> str | None:
         normalized = {normalize_name(key): value for key, value in mapped.items()}

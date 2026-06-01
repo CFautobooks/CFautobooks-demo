@@ -21,3 +21,8 @@ class RacingComScraper(BaseRacingScraper):
 
     # TODO: Replace the generic JSON-LD/table parser with source-specific,
     # permission-approved selectors once real sample pages and terms are reviewed.
+    # Source-specific selector notes to implement after permission review:
+    # - Racing.com racecards/results may expose structured embedded JSON in scripts.
+    # - Prefer embedded JSON for meetings, races, runners, track conditions and results.
+    # - Results: map finishing position, margins and starting price to ScrapedResult.
+    # - Race metadata: extract race number, distance, class and advertised start time.

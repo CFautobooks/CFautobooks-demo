@@ -21,3 +21,8 @@ class SportsbetScraper(BaseRacingScraper):
 
     # TODO: Replace the generic JSON-LD/table parser with source-specific,
     # permission-approved selectors once real sample pages and terms are reviewed.
+    # Source-specific selector notes to implement after permission review:
+    # - Sportsbet is commonly JS-rendered/blocked; enable use_playwright when permitted.
+    # - Meeting/race containers: identify event-list cards and racing market sections.
+    # - Runners: extract selection names and scratching state from market rows.
+    # - Odds: extract fixed win odds and any previous-price movement indicators.

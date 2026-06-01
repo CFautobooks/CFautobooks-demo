@@ -21,3 +21,8 @@ class PuntersScraper(BaseRacingScraper):
 
     # TODO: Replace the generic JSON-LD/table parser with source-specific,
     # permission-approved selectors once real sample pages and terms are reviewed.
+    # Source-specific selector notes to implement after permission review:
+    # - Punters pages vary by racecards/results; identify tables/cards for each page type.
+    # - Racecards: map runner tables to horse, barrier, jockey, trainer, weight and odds.
+    # - Results: map results tables to position, margin and starting price.
+    # - Odds comparison: preserve bookmaker/source when multiple odds columns are present.
