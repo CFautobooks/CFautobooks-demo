@@ -1,38 +1,30 @@
-# backend/app/main.py
-from fastapi import FastAPI, Depends, HTTPException, status
+from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from sqlalchemy.orm import Session
-from jose import jwt
-from backend.core.database import engine, get_db, Base
-from backend.routers.auth import router as auth_router
-from backend.core.config import settings
-import backend.models  # noqa: F401 - register tables with SQLAlchemy metadata
-from backend.routers.racing import router as racing_router
 
-# create all tables
+from backend.core.config import settings
+from backend.core.database import Base, engine
+from backend.routers.auth import router as auth_router
+from backend.routers.billing import router as billing_router
+from backend.routers.racing import router as racing_router
+import backend.models  # noqa: F401 - register SQLAlchemy models
+
 Base.metadata.create_all(bind=engine)
 
 app = FastAPI(title="Horse Racing Analytics API")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=settings.cors_origins_list,
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    allow_headers=["Authorization", "Content-Type", "X-Admin-Token", "Stripe-Signature"],
 )
 
 app.include_router(auth_router)
+app.include_router(billing_router)
 app.include_router(racing_router)
 
-# Protected admin route
-@app.get("/admin/invoices")
-def admin_invoices(token: str, db: Session = Depends(get_db)):
-    try:
-        payload = jwt.decode(token, settings.SECRET_KEY, algorithms=["HS256"])
-    except:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Invalid token")
-    if payload.get("plan") != "CARMICHAEL":
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Forbidden: admin only")
-    # dummy response
-    return [{"id": 1, "filename": "inv.pdf", "total": 123.45}]
+
+@app.get("/health")
+def health() -> dict[str, str]:
+    return {"status": "ok"}

@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.security import OAuth2PasswordBearer
-import jwt
+from jose import JWTError, jwt
 from backend.core.config import settings
 from backend.schemas import Invoice
 from sqlalchemy.orm import Session
@@ -14,7 +14,7 @@ admin_router = APIRouter()
 def get_all_invoices(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
     try:
         payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
-    except jwt.PyJWTError:
+    except JWTError:
         raise HTTPException(status_code=401, detail="Invalid token")
     if payload.get("plan") != "CARMICHAEL":
         raise HTTPException(status_code=403, detail="Unauthorized - must be a CARMICHAEL plan user")

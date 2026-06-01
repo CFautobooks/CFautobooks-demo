@@ -1,34 +1,19 @@
-# render.yaml
 services:
   - type: web
-    name: cfautobooks-frontend
-    env: static
-    branch: main
-    repo: https://github.com/CFautobooks/CFautobooks-demo.git
-    staticPublishPath: frontend
-
-  - type: web
-    name: cfautobooks-api
+    name: horse-racing-api
     env: docker
-    branch: main
-    repo: https://github.com/CFautobooks/CFautobooks-demo.git
-    # Change into backend/ before building:
     rootDir: backend
-    # Now look for backend/Dockerfile → backend/Dockerfile
     dockerfilePath: Dockerfile
     plan: free
 
   - type: web
-    name: cfautobooks-ocr
+    name: horse-racing-frontend
     env: docker
-    branch: main
-    repo: https://github.com/CFautobooks/CFautobooks-demo.git
-    # Change into the OCR service folder:
-    rootDir: Step1_OCR_Service
+    rootDir: frontend
     dockerfilePath: Dockerfile
     plan: free
 
 databases:
-  - name: cfautobooks-db
+  - name: horse-racing-db
     plan: free
-    databaseName: cfautobooks
+    databaseName: horseracing

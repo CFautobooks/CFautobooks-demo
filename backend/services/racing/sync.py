@@ -453,6 +453,7 @@ def calculate_and_store_model_ratings(db: Session, race_id: int) -> list[ModelRa
         rating.confidence_score = output.confidence_score
         rating.confidence_label = output.confidence_label
         rating.rating_score = output.rating_score
+        rating.suggested_staking_unit = output.suggested_staking_unit
         rating.data_quality_status = output.data_quality_status
         rating.missing_data_fields = output.missing_data_fields
         rating.calculation_inputs = output.calculation_inputs

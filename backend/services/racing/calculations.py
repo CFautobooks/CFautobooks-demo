@@ -25,6 +25,7 @@ class RunnerRatingOutput:
     confidence_score: float
     confidence_label: str
     rating_score: float | None
+    suggested_staking_unit: float | None
     data_quality_status: str
     missing_data_fields: list[str]
     calculation_inputs: dict[str, Any]
@@ -112,6 +113,13 @@ def _confidence(completeness: float, probability: float | None, field_count: int
     return score, "low"
 
 
+def suggested_staking_unit(ev: float | None, confidence_score: float, confidence_label: str) -> float | None:
+    if ev is None or ev <= 0 or confidence_label == "insufficient data":
+        return 0.0
+    # Fractional-Kelly-inspired unit sizing capped for MVP risk control.
+    return round(min(5.0, max(0.25, ev * confidence_score * 5)), 2)
+
+
 def calculate_race_ratings(runners: list[RunnerRatingInput]) -> list[RunnerRatingOutput]:
     raw_scores: dict[int, float] = {}
     details: dict[int, dict[str, Any]] = {}
@@ -159,6 +167,7 @@ def calculate_race_ratings(runners: list[RunnerRatingInput]) -> list[RunnerRatin
         confidence_score, confidence_label = _confidence(completeness, probability, field_count)
         quality_status = "sufficient" if probability is not None else "insufficient data"
         fair_odds = fair_odds_from_probability(probability)
+        ev = expected_value(probability, item.latest_odds)
 
         outputs.append(
             RunnerRatingOutput(
@@ -166,10 +175,11 @@ def calculate_race_ratings(runners: list[RunnerRatingInput]) -> list[RunnerRatin
                 win_probability=probability,
                 fair_odds=fair_odds,
                 bookmaker_odds=item.latest_odds,
-                expected_value=expected_value(probability, item.latest_odds),
+                expected_value=ev,
                 confidence_score=confidence_score,
                 confidence_label=confidence_label,
                 rating_score=round(rating_score, 4) if rating_score else None,
+                suggested_staking_unit=suggested_staking_unit(ev, confidence_score, confidence_label),
                 data_quality_status=quality_status,
                 missing_data_fields=detail["missing_fields"],
                 calculation_inputs={
@@ -180,6 +190,7 @@ def calculate_race_ratings(runners: list[RunnerRatingInput]) -> list[RunnerRatin
                         "barrier": 0.15,
                         "weight": 0.10,
                     },
+                    "staking_note": "Suggested unit uses positive expected value and confidence after rating calculation; it is not selected from raw webpage text.",
                     **detail,
                 },
             )

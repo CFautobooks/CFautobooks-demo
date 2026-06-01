@@ -3,17 +3,20 @@ from __future__ import annotations
 import argparse
 from datetime import date
 
-from backend.core.database import SessionLocal
+from backend.core.database import Base, SessionLocal, engine
+import backend.models  # noqa: F401 - register SQLAlchemy models
 from backend.services.racing.sync import sync_all, sync_odds, sync_racecards, sync_results
+from backend.services.racing.scraping_sync import sync_scraping_sources
 
 
 def main() -> None:
+    Base.metadata.create_all(bind=engine)
     parser = argparse.ArgumentParser(description="Sync racing form, odds, and results from configured APIs.")
     parser.add_argument("--date", default=date.today().isoformat(), help="Race date to sync in YYYY-MM-DD format.")
     parser.add_argument(
         "--sync",
         default="all",
-        choices=["all", "racecards", "odds", "results"],
+        choices=["all", "racecards", "odds", "results", "scraping"],
         help="Data set to sync. Intended for cron execution.",
     )
     args = parser.parse_args()
@@ -27,8 +30,10 @@ def main() -> None:
             runs = [sync_racecards(db, race_date)]
         elif args.sync == "odds":
             runs = [sync_odds(db)]
-        else:
+        elif args.sync == "results":
             runs = [sync_results(db, race_date)]
+        else:
+            runs = sync_scraping_sources(db, race_date)
 
         for run in runs:
             print(
